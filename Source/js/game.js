@@ -90,19 +90,81 @@
 			__.Engine._currentOverlay = null;
 		},
 		
+		keyDown: function(e) {
+			console.log(e);
+			
+			if(e.metaKey) {
+				// We don't capture keyboard shortcuts
+				return;
+			}
+			
+			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
+			
+			if(!firstResponder) {
+				return;
+			}
+		
+			if('keyDown' in firstResponder) {
+				var keyCode = e.keyCode || e.which;
+				
+				var key = String.fromCharCode(keyCode);
+				
+				if(!key.length) {
+					if(keyCode == 27) {
+						key = "Esc";
+					}
+				}
+				
+				firstResponder.keyDown(key.toLowerCase());
+				
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		},
+		
+		keyUp: function(e) {
+			if(e.metaKey) {
+				// We don't capture keyboard shortcuts
+				return;
+			}
+			
+			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
+			
+			if(!firstResponder) {
+				return;
+			}
+			
+			if('keyUp' in firstResponder) {
+				var keyCode = e.keyCode || e.which;
+				
+				var key = String.fromCharCode(keyCode);
+				
+				if(!key.length) {
+					if(keyCode == 27) {
+						key = "Esc";
+					}
+				}
+				
+				firstResponder.keyDown(key.toLowerCase());
+				
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		},
+		
 		mouseDown: function(e) {
 			if(e.metaKey) {
 				// We don't capture keyboard shortcuts
 				return;
 			}
 			
-			if(__.Engine._currentScreen == null) {
-				return;
-			}
-			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
 			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
+			
+			if(!firstResponder) {
+				return;
+			}
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseDown' in firstResponder) {
@@ -127,13 +189,13 @@
 				return;
 			}
 			
-			if(__.Engine._currentScreen == null) {
-				return;
-			}
-			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
 			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
+			
+			if(!firstResponder) {
+				return;
+			}
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseMove' in firstResponder) {
@@ -158,13 +220,13 @@
 				return;
 			}
 			
-			if(__.Engine._currentScreen == null) {
-				return;
-			}
-			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
 			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
+			
+			if(!firstResponder) {
+				return;
+			}
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseUp' in firstResponder) {
@@ -280,6 +342,12 @@
 		
 		update: function(delta) {
 			
+		},
+		
+		keyUp: function(key) {
+			if(key == "esc") {
+				__.Engine.hideOverlay();
+			}
 		}
 	});
 	
