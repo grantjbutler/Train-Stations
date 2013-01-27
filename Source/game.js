@@ -165,7 +165,7 @@ function addPlatform() {
 		platforms[1].active = true;
 		return true;
 	} else if (platforms[2].actve == false) {
-		platforms[2].active
+		platforms[2].active = true;
 		return true;
 	} else {
 		return false;
