@@ -90,79 +90,19 @@
 			__.Engine._currentOverlay = null;
 		},
 		
-		keyDown: function(e) {
-			if(e.metaKey) {
-				// We don't capture keyboard shortcuts
-				return;
-			}
-			
-			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
-			
-			if(!firstResponder) {
-				return;
-			}
-		
-			if('keyDown' in firstResponder) {
-				var keyCode = e.keyCode || e.which;
-				
-				var key = String.fromCharCode(keyCode).replace(/[^a-zA-Z0-9]+/, '');
-				
-				if(!key.length) {
-					if(keyCode == 27) {
-						key = "Esc";
-					}
-				}
-				
-				firstResponder.keyDown(key.toLowerCase());
-				
-				e.preventDefault();
-				e.stopPropagation();
-			}
-		},
-		
-		keyUp: function(e) {
-			if(e.metaKey) {
-				// We don't capture keyboard shortcuts
-				return;
-			}
-			
-			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
-			
-			if(!firstResponder) {
-				return;
-			}
-			
-			if('keyUp' in firstResponder) {
-				var keyCode = e.keyCode || e.which;
-				
-				var key = String.fromCharCode(keyCode).replace(/[^a-zA-Z0-9]+/, '');
-				
-				if(!key.length) {
-					if(keyCode == 27) {
-						key = "Esc";
-					}
-				}
-				
-				firstResponder.keyUp(key.toLowerCase());
-				
-				e.preventDefault();
-				e.stopPropagation();
-			}
-		},
-		
 		mouseDown: function(e) {
 			if(e.metaKey) {
 				// We don't capture keyboard shortcuts
 				return;
 			}
 			
+			if(__.Engine._currentScreen == null) {
+				return;
+			}
+			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
 			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
-			
-			if(!firstResponder) {
-				return;
-			}
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseDown' in firstResponder) {
@@ -187,13 +127,13 @@
 				return;
 			}
 			
+			if(__.Engine._currentScreen == null) {
+				return;
+			}
+			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
 			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
-			
-			if(!firstResponder) {
-				return;
-			}
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseMove' in firstResponder) {
@@ -218,13 +158,13 @@
 				return;
 			}
 			
+			if(__.Engine._currentScreen == null) {
+				return;
+			}
+			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
 			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
-			
-			if(!firstResponder) {
-				return;
-			}
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseUp' in firstResponder) {
@@ -340,12 +280,6 @@
 		
 		update: function(delta) {
 			
-		},
-		
-		keyUp: function(key) {
-			if(key == "esc") {
-				__.Engine.hideOverlay();
-			}
 		}
 	});
 	
@@ -634,7 +568,7 @@
 				
 				var origin = CGPointMake(CGRectGetMinX(this.frame) + ROUND((CGRectGetWidth(this.frame) - textSize.width) / 2.0), CGRectGetMinY(this.frame) + ROUND((CGRectGetHeight(this.frame) - textSize.height) / 2.0));
 				
-				ctx.font = "bold " + this.fontSize + "px " + this.font;
+				ctx.font = this.fontSize + "px " + this.font;
 				ctx.textBaseline = "top";
 				ctx.fillText(this.text, origin.x, origin.y - 2);
 			}
@@ -677,9 +611,6 @@
 			money: 10000,
 			
 			trains: [],
-			
-			hasTracks: [2],
-			hasPlatforms: [1],
 		});
 		
 		__GAME.State = {};
@@ -726,6 +657,8 @@
 			[ ], // Anything else, like ticket machines
 		],
 		
+		trains : [],
+		
 		initialize: function() {
 			this.map = __.Engine.assets['tilemap'];
 			
@@ -764,6 +697,8 @@
 				}
 			}
 			
+			this.trains.push(new Train(2));
+			
 			var tracksPlatformsButton = new __.Engine.UI.Button(CGRectMake(__.Engine.canvas.width - 10 - 200, 10, 200, 48));
 			tracksPlatformsButton.text = "Tracks & Platforms";
 			tracksPlatformsButton.addEvent('click', function() {
@@ -779,6 +714,12 @@
 			this.addChild(trainsButton);
 		},
 		
+		update : function(delta) {
+			for(var i=0; i < this.trains.length; i++) {
+				this.trains[i].update(delta);
+			}
+		},
+		
 		render: function(delta, ctx) {
 			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
 				for(var x = 0, xCount = this.tilemap[layer].length; x < xCount; x++) {
@@ -789,6 +730,10 @@
 					}
 				}
 			}
+			for(var i=0; i < this.trains.length; i++) {
+				this.trains[i].update(delta);
+				this.trains[i].render(ctx);
+			}
 		}
 	});
 	
@@ -797,82 +742,131 @@
 	});
 	
 	var TracksPlatformsOverlay = new Class({
-		Extends: __.Engine.Overlay,
-		
-		map: null,
-		
-		_tilemap: [
-			[13, 13, 13, 13, 13, 13, 13, 13],
-			[ 6,  7,  7,  7,  7,  7,  7,  8],
-			[14, 15, 15, 15, 15, 15, 15, 16],
-			[13, 13, 13, 13, 13, 13, 13, 13],
-			[13, 13, 13, 13, 13, 13, 13, 13],
-			[ 6,  7,  7,  7,  7,  7,  7,  8],
-			[14, 15, 15, 15, 15, 15, 15, 16],
-			[13, 13, 13, 13, 13, 13, 13, 13]
-		],
-		
-		_tilemapOrigin: null,
-		_tilemapSize: null,
-		
-		initialize: function() {
-			this.parent();
-			
-			var titleLabel = new __.Engine.UI.Label(CGRectMake(((__.Engine.canvas.width - 200) / 2.0), 10, 200, 40));
-			titleLabel.text = "Tracks & Platforms";
-			this.addChild(titleLabel);
-			
-			this.map = __.Engine.assets['tilemap'];
-			
-			this._tilemapSize = CGSizeMake(this._tilemap[0].length * 48, this._tilemap.length * 48);
-			this._tilemapOrigin = CGPointMake((__.Engine.canvas.width - this._tilemapSize.width) / 2.0, 65);
-		},
-		
-
-		render: function(delta, ctx) {
-			this.parent(delta, ctx);
-			
-			var isTrack = false;
-			
-			var trackIndex = 0;
-			var platformIndex = -1;
-			
-			for(var y = 0; y < this._tilemap.length; y++) {
-				for(var x = 0; x < this._tilemap[y].length; x++) {
-					var val = this._tilemap[y][x];
-					
-					isTrack = (val == 13);
-					
-					if(val == 6) {
-						platformIndex++;
-					}
-					
-					ctx.drawImage(this.map, ((val - 1) % 4) * 48, FLOOR((val - 1) / 4) * 48, 48, 48, this._tilemapOrigin.x + x * 48, this._tilemapOrigin.y + y * 48, 48, 48);
-				}
+		Extends: __.Engine.Overlay
+	});
+	
+	var Train = new Class({
+		Extends: __.Engine.UI.View,
+		isTraveling: false,
+		returnTimer:0,
+		track:0,
+		travelTime : 200,
+		defaultTravelTime : 200,
+		stationIdleTime : 200,
+		defaultStationIdleTime : 200,
+		flip : false,
+		initialize : function(track) {
+			this.frame = CGRectMake(-192*4,0,192*3,48);
+			this.track = track;
+			this.locomotive = __.Engine.assets['locomotive1'];
+			this.flippedLocomotive = __.Engine.assets['locomotive1-flipped'];
+			this.flippedCar = __.Engine.assets['car1-flipped'];
+			this.car = __.Engine.assets['car1'];
+			this.travelTime = 1000;
+			this.defaultTravelTime = 1000;
+			this.stationIdleTime = 200;
+			this.defaultStationIdleTime = 200;
+			this.flip = false;
+			switch(this.track) {
+				case 0:
+				this.frame.origin.y = 96;
+				break;
 				
-				CGContextSaveGState(ctx);
+				case 1:
+				this.frame.origin.y = 240;
+				break;
 				
-				ctx.globalCompositeOperation = 'source-atop';
-				ctx.fillStyle = 'rgb(0,0,0)';
+				case 2: 
+				this.frame.origin.y = 288;
+				break;
 				
-				if(isTrack) {
-					if(Game.sharedGame().hasTracks.indexOf(trackIndex) == -1) {
-						CGContextFillRect(ctx, CGRectMake(this._tilemapOrigin.x, this._tilemapOrigin.y + y * 48, this._tilemapSize.width, 48));
-					}
-					
-					trackIndex++;
-				} else {
-					if(Game.sharedGame().hasPlatforms.indexOf(platformIndex) == -1) {
-						CGContextFillRect(ctx, CGRectMake(this._tilemapOrigin.x, this._tilemapOrigin.y + y * 48, this._tilemapSize.width, 48));
-					}
-				}
-				
-				CGContextRestoreGState(ctx);
-				
-				isTrack = false;
+				case 3:
+				this.frame.origin.y = 432;
+				break;
 			}
-		}
+		},
+		update : function(delta) {
+			var endX = 0;
+			if(!this.isTraveling) {
+				if (this.flip) {
+					endX = 48;
+					if (this.frame.origin.x > endX) {
+						this.frame.origin.x -= 3;
+						if (this.frame.origin.x < endX) {
+							this.frame.origin.x = endX;
+						}
+					}
+					if (this.frame.origin.x <= endX) {
+						this.stationIdleTime--;
+						if (this.stationIdleTime == 0) {
+							this.isTraveling = true;
+							this.stationIdleTime = this.defaultStationIdleTime;
+						}
+					}
+				} else {
+					endX = __.Engine.canvas.width - 48;
+					if (this.frame.origin.x+this.frame.size.width < endX) {
+						this.frame.origin.x += 3;
+						if (this.frame.origin.x+this.frame.size.width > endX) {
+							this.frame.origin.x = endX-this.frame.size.width;
+						}
+					}
+					if (this.frame.origin.x+this.frame.size.width == endX) {
+						this.stationIdleTime--;
+						if (this.stationIdleTime == 0) {
+							this.isTraveling = true;
+							this.stationIdleTime = this.defaultStationIdleTime;
+						}
+					}
+				}
+			} else {
+				if (this.flip) {
+					if (this.frame.origin.x > (-192) * 4) {
+						this.frame.origin.x -= 3;
+						if (this.frame.origin.x < (-192) * 4) {
+							this.frame.origin.x = (-192) * 4;
+						}
+					}
+					if (this.frame.origin.x == (-192) * 4) {
+						this.travelTime--;
+						if (this.travelTime == 0) {
+							this.flip = false;
+							this.travelTime = this.defaultTravelTime;
+							this.isTraveling = false;
+						}
+					}
+				} else {
+					if (this.frame.origin.x < __.Engine.canvas.width + (192 * 4)) {
+						this.frame.origin.x += 3;
+						if (this.frame.origin.x > __.Engine.canvas.width + (192 * 4)) {
+							this.frame.origin.x = __.Engine.canvas.width + (192 * 4);
+						}
+					}
+					if (this.frame.origin.x == __.Engine.canvas.width + (192 * 4)) {
+							this.travelTime--;
+							if (this.travelTime == 0) {
+								this.flip = true;
+								this.travelTime = this.defaultTravelTime;
+								this.isTraveling = false;
+							}
+						}
+				}
+			}
+		}, 
+		render : function(ctx) {
+			//if (!this.isTraveling) {
+				if (this.flip) {
+					ctx.drawImage(this.flippedLocomotive, this.locomotive.width, 0,-this.locomotive.width, 48,this.frame.origin.x,this.frame.origin.y,this.locomotive.width,this.locomotive.height);
+					ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
+					ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.car.width,this.car.height);
 
+				} else {
+					ctx.drawImage(this.locomotive, 0, 0,this.locomotive.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.locomotive.width,this.locomotive.height);
+					ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
+					ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x,this.frame.origin.y,this.car.width,this.car.height);
+				}
+			//}
+		},
 	});
 	
 	window.addEventListener('load', function() {
@@ -880,3 +874,217 @@
 		__.Engine.run(new MainScreen());	
 	}, false);
 })(window);
+
+
+
+
+
+/*
+
+//Canvas and context
+var canvas, context;
+//Variables for keeping track of time change between update calls
+var then, now;
+//Game State
+var state = "load"; //Three primary states are 'load', 'game', and 'menu'
+
+//Buttons
+var buttons = [];
+
+//Tiles
+var tiles = new Array(15);
+for(var i=0; i < tiles.length; i++) {
+	tiles[i] = new Array(10);
+}
+
+//Prices of tickets
+var ticketPrices = {
+	normal : 5,
+	cafe : 10,
+	luxury : 20
+};
+
+//Arrays of things that need to be handled
+var customers = [];
+var trains = [];
+var employees = {};
+var platforms = [];
+var trainSchedule = [];
+var ticketBooths = []; 
+
+//In-game time
+var time = {
+	month : 1,
+	day : 1,
+	year : 2013,
+	hour : 0,
+	minute : 0
+};
+
+var renderFrame = (function() {
+	return window.mozRequestAnimationFrame ||
+		   window.msRequestAnimationFrame ||
+		   window.webkitRequestAnimationFrame ||
+		   window.requestAnimationFrame ||
+		   function(func) {
+			   setTimeout(func, 1000 / 60);
+		   };
+})().bind(window);
+
+//Set up the game when the window loads
+window.onload = function() {
+	canvas = document.getElementById("game");
+	context = canvas.getContext("2d");
+	//Attach listeners
+	canvas.addEventListener('mousedown', function(e) { mouseDown(e) }, false);
+	canvas.addEventListener('mouseup', function(e) { mouseUp(e) }, false);
+	makeMenuButtons();
+	then = Date.now();
+	renderFrame(main);
+};
+
+//the main game loop
+var main = function() {
+	now = Date.now() - then;
+	update(now/1000);
+	draw();
+	renderFrame(main);
+}
+
+//Primary update methods
+var update = function(modifier) {
+	switch(state) {
+		case 'load':
+		
+		break;
+		
+		case 'menu':
+		updateMenu();
+		break;
+		
+		case 'game':
+		updateGame();
+		break;
+	}
+}
+
+function updateMenu() {
+	
+}
+
+function updateGame() {
+
+}
+
+//Input Handle
+function mouseDown(event) {
+
+}
+
+function mouseUp(event) {
+
+}
+
+//Primary draw methods
+var draw = function() {
+	context.clearRect(0,0,canvas.width,canvas.height);
+	context.fillStyle = "#6495ED";
+	context.fillRect(0,0,canvas.width, canvas.height);
+	switch(state) {
+		case 'load':
+		drawLoad();
+		break;
+		
+		case 'menu':
+		drawMenu();
+		break;
+		
+		case 'game':
+		drawGame();
+		break;
+	}
+}
+
+function drawLoad() {
+	
+}
+
+function drawMenu() {
+	buttons.forEach(function(button) {
+		
+	});
+}
+
+function drawGame() {
+	
+}
+
+//Creation of objects
+function createBaseGame() {
+	platforms = new Array(3);
+	for(var i=0;i < platforms.length; i++) {
+		platforms[i] = {};
+		platforms[i].active = false;
+		//platforms.
+	}
+	platforms[0].active = true;
+	tracks = new Array(6);
+	for(var i=0;i < tracks.length; i++) {
+		tracks[i] = {};
+		tracks[i].active = false;
+		tracks[i].trainDocked = -1; //No train is at the station
+		//platforms.
+	}
+	tracks[0].active = true;
+	
+	//temp train
+	var tempTrain = { isTraveling : false, x : 0, y : 0, spd : 0, platform : 0, timeToReturn : 0 };
+	trains.push(tempTrain);
+	
+	//Single employee
+	var tempEmployee = {salary : 1000, customerQueue : [], isWorking : false};
+}
+
+function addPlatform() {
+	if (platforms[1].active == false) {
+		platforms[1].active = true;
+		return true;
+	} else if (platforms[2].actve == false) {
+		platforms[2].active = true;
+		return true;
+	} else {
+		return false;
+	}
+}
+
+function addTrack() {
+	for (var i=0; i < platforms.length; i++) {
+		if (platforms[i].active) {
+			for (var j=0;j < tracks.length; j++) {
+				if (tracks[j].active == false) {
+					tracks[j].active = true;
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+function makeMenuButtons() {
+	buttons = [];
+	var button = {x:20,y:20,text:"Play",width:context.measureText("Play").width, height:24,
+		method : function() {
+			state = "game";
+			createGameButtons();
+		}
+	};
+	buttons.push(button);
+	var button = {x:20,y:50,text:"Options",width:context.measureText("Options").width, height:24,
+		method : function() {
+
+		}
+	};
+	buttons.push(button);
+}
+*/
