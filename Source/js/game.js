@@ -707,8 +707,10 @@
 	var MainScreen = new Class({
 		Extends: __.Engine.Screen,
 		
+		_font: null,
+		
 		initialize: function() {
-			var startGameButton = new __.Engine.UI.Button(CGRectMake(20, 20, 125, 48));
+			var startGameButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 125) / 2.0, 375, 125, 48));
 			startGameButton.text = "Start Game";
 			startGameButton.addEvent('click', function() {
 				Game.sharedGame().state = Game.State.GAME;
@@ -717,6 +719,17 @@
 			});
 			
 			this.addChild(startGameButton);
+			
+			var titleLabel = new __.Engine.UI.Label(CGRectMake((__.Engine.canvas.width - 300) / 2.0, 30, 300, 60));
+			titleLabel.text = "Station Master";
+			titleLabel.fontSize = 48;
+			
+			this.addChild(titleLabel);
+		},
+		
+		render: function(delta, ctx) {
+			ctx.drawImage(__.Engine.assets['title-screen'], 0, 0);
+			
 		}
 	});
 	
