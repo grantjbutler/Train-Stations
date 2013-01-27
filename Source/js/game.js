@@ -35,7 +35,7 @@
 				
 				CGContextSaveGState(__.Engine.ctx);
 				
-				__.Engine._currentOverlay.render(delta, __.Engine.ctx);
+				__.Engine._currentOverlay.needsDisplay(delta, __.Engine.ctx);
 				
 				CGContextRestoreGState(__.Engine.ctx);
 			}
@@ -102,7 +102,7 @@
 			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
-			var firstResponder = __.Engine._currentScreen;
+			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseDown' in firstResponder) {
@@ -133,7 +133,7 @@
 			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
-			var firstResponder = __.Engine._currentScreen;
+			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseMove' in firstResponder) {
@@ -164,7 +164,7 @@
 			
 			var origin = CGPointMake(e.clientX - e.target.offsetLeft, e.clientY - e.target.offsetTop);
 			
-			var firstResponder = __.Engine._currentScreen;
+			var firstResponder = __.Engine._currentOverlay || __.Engine._currentScreen;
 			
 			if(e.button == 2) { // Right click
 				if('rightMouseUp' in firstResponder) {
@@ -237,7 +237,9 @@
 		
 		mouseDown: function(point) {
 			this._children.forEach(function(child) {
-				child.mouseDown(point);
+				if(CGRectContainsPoint(child.frame, point)) {
+					child.mouseDown(point);
+				}
 			});
 		},
 		
@@ -256,6 +258,16 @@
 	
 	__.Engine.Overlay = new Class({
 		Extends: __.Engine.Screen,
+		
+		initialize: function() {
+			var closeButton = new __.Engine.UI.Button(CGRectMake(10, 10, 22, 22));
+			closeButton.image = __.Engine.assets['close-button'];
+			closeButton.style = __.Engine.UI.Button.Style.PLAIN;
+			closeButton.addEvent('click', function() {
+				__.Engine.hideOverlay();
+			});
+			this.addChild(closeButton);
+		},
 		
 		render: function(delta, ctx) {
 			CGContextSaveGState(ctx);
@@ -304,6 +316,10 @@
 		hovered: false,
 		disabled: false,
 		_mouseDown: false,
+		
+		style: 1,
+		
+		image: null,
 		
 		_buttonBG: null,
 		_buttonBGSelected: null,
@@ -372,7 +388,6 @@
 			
 			this._buttonBG = __.Engine.assets['button'];
 			this._buttonBGSelected = __.Engine.assets['button-pressed'];
-
 		},
 		
 		sizeToFit: function() {
@@ -400,11 +415,11 @@
 				CGContextSetAlpha(ctx, 0.5);
 			}
 			
-
-			ctx.drawImage(img, 0, 0, 12, img.height, this.frame.origin.x, this.frame.origin.y, 12, this.frame.size.height);
-			ctx.drawImage(img, img.width - 12, 0, 12, img.height, this.frame.origin.x + this.frame.size.width - 12, this.frame.origin.y, 12, this.frame.size.height);
-			CGContextDrawTiledImage(ctx, CGRectMake(13, 0, 1, img.height), CGRectInset(this.frame, 12, 0), img);
-
+			if(this.style == __.Engine.UI.Button.Style.BORDERED) {
+				ctx.drawImage(img, 0, 0, 12, img.height, this.frame.origin.x, this.frame.origin.y, 12, this.frame.size.height);
+				ctx.drawImage(img, img.width - 12, 0, 12, img.height, this.frame.origin.x + this.frame.size.width - 12, this.frame.origin.y, 12, this.frame.size.height);
+				CGContextDrawTiledImage(ctx, CGRectMake(13, 0, 1, img.height), CGRectInset(this.frame, 12, 0), img);
+			}
 			
 			if(this.text.length && this._font && this._font.loaded) {
 				CGContextSetFillColor(ctx, CGColorCreateGenericRGB(1, 1, 1, 1.0));
@@ -416,6 +431,10 @@
 				ctx.font = this.fontSize + "px " + this.font;
 				ctx.textBaseline = "top";
 				ctx.fillText(this.text, origin.x, origin.y - 2);
+			}
+			
+			if(this.image) {
+				CGContextDrawImage(ctx, CGRectMake(CGRectGetMinX(this.frame) + ROUND((this.frame.size.width - this.image.width) / 2.0), CGRectGetMinY(this.frame) + ROUND((this.frame.size.height - this.image.height) / 2.0), this.image.width, this.image.height), { _image: this.image });
 			}
 		},
 		
@@ -453,6 +472,10 @@
 			this.highlighted = false;
 		}
 	});
+	
+	__.Engine.UI.Button.Style = {};
+	__.Engine.UI.Button.Style.BORDERED = 1;
+	__.Engine.UI.Button.Style.PLAIN = 2;
 	
 	__.Engine.UI.Label = new Class({
 		Extends: __.Engine.UI.View,
@@ -584,6 +607,10 @@
 	var Game = (function() {
 		var __GAME = new Class({
 			state: 1, // 1 is "MENU".
+			
+			money: 10000,
+			
+			trains: [],
 		});
 		
 		__GAME.State = {};
@@ -644,11 +671,43 @@
 				}
 			}
 			
+			for(var i = 0; i < this.tilemap[1].length; i++) {
+				this.tilemap[1][i][6] = 13;
+			}
+			
+			this.tilemap[1][0][7] = 6;
+			this.tilemap[1][14][7] = 8;
+			
+			for(var i = 1; i < this.tilemap[1].length - 1; i++) {
+				this.tilemap[1][i][7] = 7;
+			}
+			
+			this.tilemap[1][0][8] = 14;
+			this.tilemap[1][14][8] = 16;
+			
+			for(var i = 1; i < this.tilemap[1].length - 1; i++) {
+				this.tilemap[1][i][8] = 15;
+			}
+			
 			for(var y = 0; y < yCount; y++) {
 				for(var x = 0; x < xCount; x++) {
-					this.tilemap[0][x][y] = Math.floor(Math.random() * 5) + 1;
+					this.tilemap[0][x][y] = FLOOR(RAND() * 5) + 1;
 				}
 			}
+			
+			var tracksPlatformsButton = new __.Engine.UI.Button(CGRectMake(__.Engine.canvas.width - 10 - 200, 10, 200, 48));
+			tracksPlatformsButton.text = "Tracks & Platforms";
+			tracksPlatformsButton.addEvent('click', function() {
+				__.Engine.showOverlay(new TracksPlatformsOverlay());
+			});
+			this.addChild(tracksPlatformsButton);
+			
+			var trainsButton = new __.Engine.UI.Button(CGRectMake(CGRectGetMinX(tracksPlatformsButton.frame) - 10 - 100, 10, 100, 48));
+			trainsButton.text = "Trains";
+			trainsButton.addEvent('click', function() {
+				__.Engine.showOverlay(new TrainsOverlay());
+			});
+			this.addChild(trainsButton);
 		},
 		
 		render: function(delta, ctx) {
@@ -662,6 +721,14 @@
 				}
 			}
 		}
+	});
+	
+	var TrainsOverlay = new Class({
+		Extends: __.Engine.Overlay,
+	});
+	
+	var TracksPlatformsOverlay = new Class({
+		Extends: __.Engine.Overlay
 	});
 	
 	window.addEventListener('load', function() {
