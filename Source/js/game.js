@@ -849,7 +849,7 @@
 				if(Game.sharedGame().money <= 0) {
 					alert('You\'ve gone bankrupt! You get nothing! You lose! Good day, sir!');
 					
-					__.Engine.setScreen(new MainScreen());
+					location.reload();
 				}
 			}.bind(this));
 		},
