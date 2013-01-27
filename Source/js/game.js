@@ -1553,8 +1553,8 @@
 		cloudBounds: null,
 		cloudXSpd: -1,
 		cloudYSpd: 1,
-		health: 500,
-		defaultHealth: 500,
+		health: 1000,
+		defaultHealth: 1000,
 		initialize : function(track) {
 			this.frame = CGRectMake(-192*4,0,192*3,48);
 			this.capacity = 50;
@@ -1596,7 +1596,7 @@
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if(Math.random() * this.health <= 1) {
+							if((Math.random() * this.health) <= 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
