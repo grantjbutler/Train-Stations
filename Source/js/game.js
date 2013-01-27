@@ -30,11 +30,15 @@
 			}
 		},
 		
-		run: function(baseScreen) {
-			__.Engine._isRunning = true;
+		init: function() {
+			var imgs = document.getElementById('resources').getElementsByTagName('img');
 			
-			if(baseScreen != null) {
-				__.Engine.setScreen(baseScreen);
+			for(var i = 0; i < imgs.length; i++) {
+				var lastSlash = imgs[i].src.lastIndexOf('/') + 1;
+				var lastPeriod = imgs[i].src.lastIndexOf('.');
+				var length = lastPeriod - lastSlash;
+				
+				__.Engine.assets[imgs[i].src.substr(lastSlash, length)] = imgs[i];
 			}
 			
 			__.Engine.canvas = document.getElementById('game');
@@ -47,15 +51,13 @@
 			__.Engine.canvas.addEventListener('mousedown', __.Engine.mouseDown, false);
 			__.Engine.canvas.addEventListener('mousemove', __.Engine.mouseMove, false);
 			__.Engine.canvas.addEventListener('mouseup', __.Engine.mouseUp, false);
+		},
+		
+		run: function(baseScreen) {
+			__.Engine._isRunning = true;
 			
-			var imgs = document.getElementById('resources').getElementsByTagName('img');
-			
-			for(var i = 0; i < imgs.length; i++) {
-				var lastSlash = imgs[i].src.lastIndexOf('/');
-				var lastPeriod = imgs[i].src.lastIndexOf('.');
-				var length = lastPeriod - lastSlash;
-				
-				__.Engine.assets[imgs[i].src.substr(lastSlash, length)] = imgs[i];
+			if(baseScreen != null) {
+				__.Engine.setScreen(baseScreen);
 			}
 			
 			__.Engine.requestAnimationFrame.call(__, __.Engine.render);
@@ -312,7 +314,6 @@
 			
 			this.font = "Helvetica";
 			
-
 			this._buttonBG = __.Engine.assets['button'];
 			this._buttonBGSelected = __.Engine.assets['button-pressed'];
 
@@ -442,22 +443,29 @@
 		
 		map: null,
 		
-		tilemap: {
-			0: [
-				
-			],
-			
-			1: [
-				
-			],
-		}
+		tilemap: [
+			[ ], // Grass and ground
+			[ ], // tracks and platforms
+			[ ], // Anything else, like ticket machines
+		],
 		
-		initalize: function() {
+		initialize: function() {
 			this.map = __.Engine.assets['tilemap'];
 			
-			for(var y = 0, yCount = __.Engine.canvas.height / 48; y < yCount; y++) {
-				for(var x = 0, xCount = __.Engine.canvas.width / 48; x < xCount; x++) {
-					this.tilemap[0][x][y] = Math.random() % 4 + 1;
+			var yCount = __.Engine.canvas.height / 48;
+			var xCount = __.Engine.canvas.width / 48;
+			
+			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
+				this.tilemap[layer] = new Array(xCount);
+				
+				for(var i = 0; i < this.tilemap[layer].length; i++) {
+					this.tilemap[layer][i] = new Array(yCount);
+				}
+			}
+			
+			for(var y = 0; y < yCount; y++) {
+				for(var x = 0; x < xCount; x++) {
+					this.tilemap[0][x][y] = Math.floor(Math.random() * 5) + 1;
 				}
 			}
 		},
@@ -466,16 +474,17 @@
 			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
 				for(var x = 0, xCount = this.tilemap[layer].length; x < xCount; x++) {
 					for(var y = 0, yCount = this.tilemap[layer][x].length; y < yCount; y++) {
+						var val = this.tilemap[layer][x][y];
 						
+						ctx.drawImage(this.map, ((val - 1) % 4) * 48, FLOOR((val - 1) / 4) * 48, 48, 48, x * 48, y * 48, 48, 48);
 					}
 				}
 			}
-			
-			
 		}
 	});
 	
 	window.addEventListener('load', function() {
+		__.Engine.init();
 		__.Engine.run(new MainScreen());	
 	}, false);
 })(window);
