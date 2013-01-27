@@ -55,7 +55,7 @@ window.onload = function() {
 	//Attach listeners
 	canvas.addEventListener('mousedown', function(e) { mouseDown(e) }, false);
 	canvas.addEventListener('mouseup', function(e) { mouseUp(e) }, false);
-	makeMenuButtons(); 
+	makeMenuButtons();
 	then = Date.now();
 	renderFrame(main);
 };
