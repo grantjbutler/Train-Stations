@@ -1114,6 +1114,12 @@
 			
 			if(Game.sharedGame().trains[trainIdx].active) {
 				// Sell
+				
+				Game.sharedGame().addMoney(Game.Prices.TRAIN * 0.8);
+				Game.sharedGame().trains[trainIdx].active = false;
+				Game.sharedGame().trains[trainIdx].setTrack(-1);
+				
+				this.selectTrainButton(this.trainButtons[trainIdx]);
 			} else {
 				// Buy
 				
