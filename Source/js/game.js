@@ -859,11 +859,11 @@
 					}
 				}
 			}
-			for(var i=0; i < this.trains.length; i++) {
+			for(var i=0; i < Game.sharedGame().trains.length; i++) {
 				Game.sharedGame().trains[i].render(ctx);
 			}
 		},
-
+		
 		ticketTransaction : function() {
 			if (this.numberOfCustomers < 200) {
 				Game.sharedGame().addMoney(this.numberOfCustomers * 5);
