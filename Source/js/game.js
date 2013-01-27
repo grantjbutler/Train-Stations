@@ -845,6 +845,12 @@
 			Game.sharedGame().addEvent('money', function() {
 				this.moneyLabel.text = 'Money: $' + Game.sharedGame().money;
 				this.moneyLabel.sizeToFit();
+				
+				if(Game.sharedGame().money <= 0) {
+					alert('You\'ve gone bankrupt! You get nothing! You lose! Good day, sir!');
+					
+					__.Engine.setScreen(new MainScreen());
+				}
 			}.bind(this));
 		},
 		
@@ -856,6 +862,7 @@
 					train.update(delta);
 				}
 			}
+			
 			this.frame++;
 			if (this.frame >= 15 && Game.sharedGame().trains.length > 0) {
 				this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
@@ -884,13 +891,13 @@
 			}
 		},
 		
-		ticketTransaction : function() {
-			if (this.numberOfCustomers < 200) {
+		ticketTransaction : function(capacity) {
+			if (this.numberOfCustomers < capacity) {
 				Game.sharedGame().addMoney(this.numberOfCustomers * 5);
 				this.numberOfCustomers = 0;
 			} else {
-				Game.sharedGame().addMoney(200 * 5);
-				this.numberOfCustomers -= 200;
+				Game.sharedGame().addMoney(capacity * 5);
+				this.numberOfCustomers -= capacity;
 			}
 		}
 	});
@@ -1553,8 +1560,8 @@
 		cloudBounds: null,
 		cloudXSpd: -1,
 		cloudYSpd: 1,
-		health: 1000,
-		defaultHealth: 1000,
+		health: 500,
+		defaultHealth: 500,
 		initialize : function(track) {
 			this.frame = CGRectMake(-192*4,0,192*3,48);
 			this.capacity = 50;
@@ -1562,8 +1569,8 @@
 			this.flippedLocomotive = __.Engine.assets['locomotive1-flipped'];
 			this.flippedCar = __.Engine.assets['car1-flipped'];
 			this.car = __.Engine.assets['car1'];
-			this.travelTime = 1000;
-			this.defaultTravelTime = 1000;
+			this.travelTime = 1;
+			this.defaultTravelTime = 1;
 			this.stationIdleTime = 200;
 			this.defaultStationIdleTime = 200;
 			this.flip = false;
@@ -1592,28 +1599,30 @@
 								this.health = this.defaultHealth;
 							}
 							this.breakdown = false;
-							__.Engine._currentScreen.ticketTransaction();
+							__.Engine._currentScreen.ticketTransaction(this.capacity);
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if((Math.random() * this.health) <= 1) {
+							if(Math.floor(Math.random() * this.health) < 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
 						} else if(this.breakdown) {
-							if(Math.floor(this.stationIdleTime % 15) == 0) {
-								Game.sharedGame().subtractMoney(10);
-								
+							if(Math.floor(this.stationIdleTime % 5) == 0) {
 								this.cloudOrigin.x += this.cloudXSpd;
 								this.cloudOrigin.y += this.cloudYSpd;
-								
-								if(Math.floor(this.stationIdleTime % 15) == 0) {
-									this.cloudXSpd = -this.cloudXSpd;
-								}
-								
-								if(Math.floor(this.stationIdleTime % 30) == 0) {
-									this.cloudYSpd = -this.cloudYSpd;
-								}
+							}
+							
+							if(Math.floor(this.stationIdleTime % 15) == 0) {
+								this.cloudXSpd = -this.cloudXSpd;
+							}
+							
+							if(Math.floor(this.stationIdleTime % 30) == 0) {
+								this.cloudYSpd = -this.cloudYSpd;
+							}
+							
+							if(Math.floor(this.stationIdleTime % 15) == 0) {
+								Game.sharedGame().subtractMoney(this.defaultHealth - this.health);
 							}
 						}
 					}
@@ -1633,17 +1642,17 @@
 								this.health = this.defaultHealth;
 							}
 							this.breakdown = false;
-							__.Engine._currentScreen.ticketTransaction();
+							__.Engine._currentScreen.ticketTransaction(this.capacity);
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if(Math.random() * this.health <= 1) {
+							if(Math.floor(Math.random() * this.health) < 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
 						} else if(this.breakdown) {
 							if(Math.floor(this.stationIdleTime % 15) == 0) {
-								Game.sharedGame().subtractMoney(10);
+								Game.sharedGame().subtractMoney(this.defaultHealth - this.health);
 								
 								this.cloudOrigin.x += this.cloudXSpd;
 								this.cloudOrigin.y += this.cloudYSpd;
@@ -1735,10 +1744,8 @@
 				break;
 				
 				case -1:
-					this.travelTime = 1000;
-					this.defaultTravelTime = 1000;
-					this.stationIdleTime = 200;
-					this.defaultStationIdleTime = 200;
+					this.travelTime = this.defaultTravelTime;
+					this.stationIdleTime = this.defaultStationIdleTime;
 					this.flip = false;
 					
 					this.frame.origin.x = (-192) * 4;
@@ -1753,10 +1760,10 @@
 			this.stationIdleTime = this.defaultStationIdleTime * Math.floor((Math.random() * 5) + 1);
 			
 			if(this.flip) {
-				this.cloudOrigin = CGPointMake(15, 0);
+				this.cloudOrigin = CGPointMake(15, -5);
 				this.cloudBounds = CGRectMake(10, 10, 10, 10);
 			} else {
-				this.cloudOrigin = CGPointMake(this.frame.size.width - this.cloud.width - 15, 0);
+				this.cloudOrigin = CGPointMake(this.frame.size.width - this.cloud.width - 15, -5);
 				this.cloudBounds = CGRectMake(10, 10, 10, 10);
 			}
 		}
