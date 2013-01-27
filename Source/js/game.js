@@ -728,11 +728,22 @@
 		
 		trains : [],
 		
+		platforms : [],
+		
+		tracks : [],
+		
+		numberOfCustomers : 0,
+		
 		initialize: function() {
 			this.map = __.Engine.assets['tilemap'];
 			
 			var yCount = __.Engine.canvas.height / 48;
 			var xCount = __.Engine.canvas.width / 48;
+			
+			this.platforms.push(new Platform(false));
+			this.platforms.push(new Platform(true));
+			
+			this.money = 10000;
 			
 			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
 				this.tilemap[layer] = new Array(xCount);
@@ -787,6 +798,7 @@
 			for(var i=0; i < this.trains.length; i++) {
 				this.trains[i].update(delta);
 			}
+			this.numberOfCustomers += Math.floor(Math.random() * (this.platforms.length)) + 1;
 		},
 		
 		render: function(delta, ctx) {
@@ -802,6 +814,16 @@
 			for(var i=0; i < this.trains.length; i++) {
 /* 				this.trains[i].update(delta); */
 				this.trains[i].render(ctx);
+			}
+		},
+		
+		ticketTransaction : function() {
+			if (this.numberOfCustomers < 200) {
+				this.money += (this.numberOfCustomers * 5);
+				this.numberOfCustomers = 0;
+			} else {
+				this.money += (200 * 5);
+				this.numberOfCustomers -= 200;
 			}
 		}
 	});
@@ -937,6 +959,7 @@
 						this.frame.origin.x -= 3;
 						if (this.frame.origin.x < endX) {
 							this.frame.origin.x = endX;
+							__.Engine._currentScreen.ticketTransaction();
 						}
 					}
 					if (this.frame.origin.x <= endX) {
@@ -952,6 +975,7 @@
 						this.frame.origin.x += 3;
 						if (this.frame.origin.x+this.frame.size.width > endX) {
 							this.frame.origin.x = endX-this.frame.size.width;
+							__.Engine._currentScreen.ticketTransaction();
 						}
 					}
 					if (this.frame.origin.x+this.frame.size.width == endX) {
@@ -1010,6 +1034,28 @@
 				}
 			//}
 		},
+	});
+	
+	var Platform = new Class({
+		active : false,
+		cost : 7500,
+		sellPrice : 3000,
+		initialize : function(active) {
+			this.active = active;
+			this.cost = 7500;
+			this.sellPrive = 3000;
+		}
+	});
+	
+	var Track = new Class({
+		active : false,
+		cost : 4000,
+		sellPrice : 1800,
+		initialize : function(active) {
+			this.active = active;
+			this.cost = 4000;
+			this.sellPrive = 1800;
+		}
 	});
 	
 	window.addEventListener('load', function() {
