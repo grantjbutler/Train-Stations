@@ -672,6 +672,14 @@
 (function(__) {
 	var Game = (function() {
 		var __GAME = new Class({
+			Implements: [Events],
+			
+			tilemap: [
+				[ ], // Grass and ground
+				[ ], // tracks and platforms
+				[ ], // Anything else, like ticket machines
+			],
+			
 			state: 1, // 1 is "MENU".
 			
 			money: 2000,
@@ -680,6 +688,55 @@
 			
 			hasTracks: [2],
 			hasPlatforms: [1],
+			
+			initialize: function() {
+				var yCount = __.Engine.canvas.height / 48;
+				var xCount = __.Engine.canvas.width / 48;
+				
+				for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
+					this.tilemap[layer] = new Array(xCount);
+					
+					for(var i = 0; i < this.tilemap[layer].length; i++) {
+						this.tilemap[layer][i] = new Array(yCount);
+					}
+				}
+				
+				for(var i = 0; i < this.tilemap[1].length; i++) {
+					this.tilemap[1][i][6] = 13;
+				}
+				
+				this.tilemap[1][0][7] = 6;
+				this.tilemap[1][14][7] = 8;
+				
+				for(var i = 1; i < this.tilemap[1].length - 1; i++) {
+					this.tilemap[1][i][7] = 7;
+				}
+				
+				this.tilemap[1][0][8] = 14;
+				this.tilemap[1][14][8] = 16;
+				
+				for(var i = 1; i < this.tilemap[1].length - 1; i++) {
+					this.tilemap[1][i][8] = 15;
+				}
+				
+				for(var y = 0; y < yCount; y++) {
+					for(var x = 0; x < xCount; x++) {
+						this.tilemap[0][x][y] = FLOOR(RAND() * 5) + 1;
+					}
+				}
+			},
+			
+			addMoney: function(change) {
+				this.money += change;
+				
+				this.fireEvent('money');
+			},
+			
+			subtractMoney: function(change) {
+				this.money -= change;
+				
+				this.fireEvent('money');
+			}
 		});
 		
 		__GAME.State = {};
@@ -689,7 +746,6 @@
 		__GAME.Prices = {};
 		__GAME.Prices.TRACK = 500;
 		__GAME.Prices.PLATFORM = 350;
-/* 		__GAME.Prices.PLATFORM_AND_TRACK = 750; */
 		
 		__SHARED_GAME = null;
 		
@@ -708,7 +764,7 @@
 		Extends: __.Engine.Screen,
 		
 		initialize: function() {
-			var startGameButton = new __.Engine.UI.Button(CGRectMake(20, 20, 125, 48));
+			var startGameButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 125) / 2.0, 375, 125, 48));
 			startGameButton.text = "Start Game";
 			startGameButton.addEvent('click', function() {
 				Game.sharedGame().state = Game.State.GAME;
@@ -717,6 +773,16 @@
 			});
 			
 			this.addChild(startGameButton);
+			
+			var titleLabel = new __.Engine.UI.Label(CGRectMake((__.Engine.canvas.width - 300) / 2.0, 30, 300, 60));
+			titleLabel.text = "Station Master";
+			titleLabel.fontSize = 48;
+			
+			this.addChild(titleLabel);
+		},
+		
+		render: function(delta, ctx) {
+			ctx.drawImage(__.Engine.assets['title-screen'], 0, 0);
 		}
 	});
 	
@@ -739,45 +805,15 @@
 		
 		numberOfCustomers : 0,
 		
+		moneyLabel: null,
+		
 		initialize: function() {
 			this.map = __.Engine.assets['tilemap'];
 			
-			var yCount = __.Engine.canvas.height / 48;
-			var xCount = __.Engine.canvas.width / 48;
+			this.platforms.push(new Platform(false));
+			this.platforms.push(new Platform(true));
 			
-			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
-				this.tilemap[layer] = new Array(xCount);
-				
-				for(var i = 0; i < this.tilemap[layer].length; i++) {
-					this.tilemap[layer][i] = new Array(yCount);
-				}
-			}
-			
-			for(var i = 0; i < this.tilemap[1].length; i++) {
-				this.tilemap[1][i][6] = 13;
-			}
-			
-			this.tilemap[1][0][7] = 6;
-			this.tilemap[1][14][7] = 8;
-			
-			for(var i = 1; i < this.tilemap[1].length - 1; i++) {
-				this.tilemap[1][i][7] = 7;
-			}
-			
-			this.tilemap[1][0][8] = 14;
-			this.tilemap[1][14][8] = 16;
-			
-			for(var i = 1; i < this.tilemap[1].length - 1; i++) {
-				this.tilemap[1][i][8] = 15;
-			}
-			
-			for(var y = 0; y < yCount; y++) {
-				for(var x = 0; x < xCount; x++) {
-					this.tilemap[0][x][y] = FLOOR(RAND() * 5) + 1;
-				}
-			}
-			
-			Game.sharedGame().trains.push(new Train(2));
+			this.trains.push(new Train(2));
 			
 			var tracksPlatformsButton = new __.Engine.UI.Button(CGRectMake(__.Engine.canvas.width - 10 - 200, 10, 200, 48));
 			tracksPlatformsButton.text = "Tracks & Platforms";
@@ -792,6 +828,16 @@
 				__.Engine.showOverlay(new TrainsOverlay());
 			});
 			this.addChild(trainsButton);
+			
+			this.moneyLabel = new __.Engine.UI.Label(CGRectMake(10, 10, 0, 0));
+			this.moneyLabel.text = 'Money: $' + Game.sharedGame().money;
+			this.moneyLabel.sizeToFit();
+			this.addChild(this.moneyLabel);
+			
+			Game.sharedGame().addEvent('money', function() {
+				this.moneyLabel.text = 'Money: $' + Game.sharedGame().money;
+				this.moneyLabel.sizeToFit();
+			}.bind(this));
 		},
 		
 		update : function(delta) {
@@ -802,10 +848,12 @@
 		},
 		
 		render: function(delta, ctx) {
-			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
-				for(var x = 0, xCount = this.tilemap[layer].length; x < xCount; x++) {
-					for(var y = 0, yCount = this.tilemap[layer][x].length; y < yCount; y++) {
-						var val = this.tilemap[layer][x][y];
+			var tilemap = Game.sharedGame().tilemap;
+			
+			for(var layer = 0, count = tilemap.length; layer < count; layer++) {
+				for(var x = 0, xCount = tilemap[layer].length; x < xCount; x++) {
+					for(var y = 0, yCount = tilemap[layer][x].length; y < yCount; y++) {
+						var val = tilemap[layer][x][y];
 						
 						ctx.drawImage(this.map, ((val - 1) % 4) * 48, FLOOR((val - 1) / 4) * 48, 48, 48, x * 48, y * 48, 48, 48);
 					}
@@ -815,14 +863,14 @@
 				Game.sharedGame().trains[i].render(ctx);
 			}
 		},
-		
-		ticketTransaction : function(capacity) {
-			if (this.numberOfCustomers < capacity) {
-				Game.sharedGame().money += (this.numberOfCustomers * 5);
+
+		ticketTransaction : function() {
+			if (this.numberOfCustomers < 200) {
+				Game.sharedGame().addMoney(this.numberOfCustomers * 5);
 				this.numberOfCustomers = 0;
 			} else {
-				Game.sharedGame().money += (capacity * 5);
-				this.numberOfCustomers -= capacity;
+				Game.sharedGame().addMoney(200 * 5);
+				this.numberOfCustomers -= 200;
 			}
 		}
 	});
@@ -1020,7 +1068,7 @@
 					return;
 				}
 				
-				Game.sharedGame().money -= price;
+				Game.sharedGame().subtractMoney(price);
 				
 				if(isTrack) {
 					Game.sharedGame().hasTracks.push(trackIndex);
@@ -1028,8 +1076,66 @@
 					platformsToBuy.forEach(function(platform) {
 						Game.sharedGame().hasPlatforms.push(platform);
 					});
+					
+					var tileMapIdx = 0;
+					
+					if(trackIndex == 0) {
+						tileMapIdx = 2;
+					} else if(trackIndex == 1) {
+						tileMapIdx = 5;
+					} else if(trackIndex == 2) {
+						tileMapIdx = 6;
+					} else if(trackIndex == 3) {
+						tileMapIdx = 9;
+					}
+					
+					for(var x = 0; x < Game.sharedGame().tilemap[1].length; x++) {
+						Game.sharedGame().tilemap[1][x][tileMapIdx] = 13;
+					}
+					
+					platformsToBuy.forEach(function(platform) {
+						for(var i = 0; i < 2; i++) {
+							var y = 3 + (platform * 4) + i;
+							
+							if(i == 0) {
+								Game.sharedGame().tilemap[1][0][y] = 6;
+								Game.sharedGame().tilemap[1][14][y] = 8;
+								
+								for(var j = 1; j < Game.sharedGame().tilemap[1].length - 1; j++) {
+									Game.sharedGame().tilemap[1][j][y] = 7;
+								}
+							} else {
+								Game.sharedGame().tilemap[1][0][y] = 14;
+								Game.sharedGame().tilemap[1][14][y] = 16;
+								
+								for(var j = 1; j < Game.sharedGame().tilemap[1].length - 1; j++) {
+									Game.sharedGame().tilemap[1][j][y] = 15;
+								}
+							}
+						}
+					});
 				} else {
 					Game.sharedGame().hasPlatforms.push(platformIndex);
+					
+					for(var i = 0; i < 2; i++) {
+						var y = 3 + (platformIndex * 4) + i;
+						
+						if(i == 0) {
+							Game.sharedGame().tilemap[1][0][y] = 6;
+							Game.sharedGame().tilemap[1][14][y] = 8;
+							
+							for(var j = 1; j < Game.sharedGame().tilemap[1].length - 1; j++) {
+								Game.sharedGame().tilemap[1][j][y] = 7;
+							}
+						} else {
+							Game.sharedGame().tilemap[1][0][y] = 14;
+							Game.sharedGame().tilemap[1][14][y] = 16;
+							
+							for(var j = 1; j < Game.sharedGame().tilemap[1].length - 1; j++) {
+								Game.sharedGame().tilemap[1][j][y] = 15;
+							}
+						}
+					}
 				}
 			} else {
 				if(isTrack) {
@@ -1046,19 +1152,43 @@
 					return;
 				}
 				
-				Game.sharedGame().money += price;
+				Game.sharedGame().addMoney(price);
 				
 				if(isTrack) {
 					var i = Game.sharedGame().hasTracks.indexOf(trackIndex);
 					
 					if(i != -1) {
 						Game.sharedGame().hasTracks.splice(i, 1);
+						
+						var tileMapIdx = 0;
+					
+						if(trackIndex == 0) {
+							tileMapIdx = 2;
+						} else if(trackIndex == 1) {
+							tileMapIdx = 5;
+						} else if(trackIndex == 2) {
+							tileMapIdx = 6;
+						} else if(trackIndex == 3) {
+							tileMapIdx = 9;
+						}
+						
+						for(var x = 0; x < Game.sharedGame().tilemap[1].length; x++) {
+							Game.sharedGame().tilemap[1][x][tileMapIdx] = 0;
+						}
 					}
 				} else {
 					var i = Game.sharedGame().hasPlatforms.indexOf(platformIndex);
 					
 					if(i != -1) {
 						Game.sharedGame().hasPlatforms.splice(i, 1);
+						
+						for(var i = 0; i < 2; i++) {
+							var y = 3 + (platformIndex * 4) + i;
+							
+							for(var j = 0; j < Game.sharedGame().tilemap[1].length; j++) {
+								Game.sharedGame().tilemap[1][j][y] = 0;
+							}
+						}
 					}
 					
 					tracksToSell.forEach(function(track) {
@@ -1066,6 +1196,22 @@
 						
 						if(i != -1) {
 							Game.sharedGame().hasTracks.splice(i, 1);
+							
+							var tileMapIdx = 0;
+							
+							if(track == 0) {
+								tileMapIdx = 2;
+							} else if(track == 1) {
+								tileMapIdx = 5;
+							} else if(track == 2) {
+								tileMapIdx = 6;
+							} else if(track == 3) {
+								tileMapIdx = 9;
+							}
+							
+							for(var x = 0; x < Game.sharedGame().tilemap[1].length; x++) {
+								Game.sharedGame().tilemap[1][x][tileMapIdx] = 0;
+							}
 						}
 					});
 				}
@@ -1123,12 +1269,12 @@
 						this.frame.origin.x -= 3;
 						if (this.frame.origin.x < endX) {
 							this.frame.origin.x = endX;
-							__.Engine._currentScreen.ticketTransaction();
 						}
 					}
 					if (this.frame.origin.x <= endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						}
@@ -1139,12 +1285,12 @@
 						this.frame.origin.x += 3;
 						if (this.frame.origin.x+this.frame.size.width > endX) {
 							this.frame.origin.x = endX-this.frame.size.width;
-							__.Engine._currentScreen.ticketTransaction();
 						}
 					}
 					if (this.frame.origin.x+this.frame.size.width == endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						}
