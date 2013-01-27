@@ -724,6 +724,10 @@
 						this.tilemap[0][x][y] = FLOOR(RAND() * 5) + 1;
 					}
 				}
+				
+				for(var i = 0; i < 4; i++) {
+					this.trains.push(new Train(-1));
+				}
 			},
 			
 			addMoney: function(change) {
@@ -746,6 +750,8 @@
 		__GAME.Prices = {};
 		__GAME.Prices.TRACK = 500;
 		__GAME.Prices.PLATFORM = 350;
+		__GAME.Prices.TRAIN = 750;
+		__GAME.Prices.CAPACITY_UPGRADE = 100;
 		
 		__SHARED_GAME = null;
 		
@@ -813,8 +819,6 @@
 			this.platforms.push(new Platform(false));
 			this.platforms.push(new Platform(true));
 			
-			this.trains.push(new Train(2));
-						
 			var tracksPlatformsButton = new __.Engine.UI.Button(CGRectMake(__.Engine.canvas.width - 10 - 200, 10, 200, 48));
 			tracksPlatformsButton.text = "Tracks & Platforms";
 			tracksPlatformsButton.addEvent('click', function() {
@@ -842,7 +846,11 @@
 		
 		update : function(delta) {
 			for(var i=0; i < Game.sharedGame().trains.length; i++) {
-				Game.sharedGame().trains[i].update(delta);
+				var train = Game.sharedGame().trains[i];
+				
+				if(train.active && train.track != -1) {
+					train.update(delta);
+				}
 			}
 			this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
 		},
@@ -860,7 +868,11 @@
 				}
 			}
 			for(var i=0; i < Game.sharedGame().trains.length; i++) {
-				Game.sharedGame().trains[i].render(ctx);
+				var train = Game.sharedGame().trains[i];
+				
+				if(train.active) {
+					train.render(ctx);
+				}
 			}
 		},
 		
@@ -875,8 +887,71 @@
 		}
 	});
 	
+	var TrainButton = new Class({
+		Extends: __.Engine.UI.Button,
+		
+		enabled: true,
+		selected: false,
+		
+		initialize: function(frame) {
+			this.parent(frame);
+			
+			this.image = __.Engine.assets['locomotive1'];
+		},
+		
+		render: function(ctx) {
+			if(this.selected) {
+				ctx.fillStyle = 'rgb(0, 0, 255)';
+			} else {
+				ctx.fillStyle = 'rgb(0, 0, 0)';
+			}
+			
+			CGContextFillRect(ctx, this.frame);
+			
+			ctx.drawImage(this.image, 144, 0, 48, 48, CGRectGetMinX(this.frame) + 1, CGRectGetMinY(this.frame) + 1, 48, 48);
+			
+			if(!this.enabled) {
+				ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+				CGContextFillRect(ctx, CGRectInset(this.frame, 1, 1));
+			}
+		}
+	});
+	
+	var TabButton = new Class({
+		Extends: __.Engine.UI.Button,
+		
+		selected: false,
+		
+		initialize: function(frame) {
+			this.parent(frame);
+			
+			this.style = __.Engine.UI.Button.Style.Plain;
+		},
+		
+		render: function(ctx) {
+			if(this.disabled) {
+				CGContextSetAlpha(ctx, 0.5);
+			}
+			
+			if(this.selected) {
+				ctx.fillStyle = 'rgb(0, 0, 255)';
+			} else {
+				ctx.fillStyle = 'rgb(0, 0, 0)';
+			}
+			
+			CGContextFillRect(ctx, this.frame);
+			
+			this.parent(ctx);
+		}
+	});
+	
 	var TrainsOverlay = new Class({
 		Extends: __.Engine.Overlay,
+		
+		trainButtons: [],
+		trackButtons: [],
+		
+		actionButton: null,
 		
 		initialize: function() {
 			this.parent();
@@ -884,7 +959,168 @@
 			var titleLabel = new __.Engine.UI.Label(CGRectMake(((__.Engine.canvas.width - 200) / 2.0), 10, 200, 40));
 			titleLabel.text = "Trains";
 			this.addChild(titleLabel);
+			
+			var origin = CGPointMake((__.Engine.canvas.width - 200) / 2.0, 50);
+			
+			for(var i = 0; i < 4; i++) {
+				var trainButton = new TrainButton(CGRectMake(origin.x + (i * 50), origin.y, 50, 50));
+				
+				if(i == 0) {
+					trainButton.selected = true;
+				}
+				
+				trainButton.enabled = Game.sharedGame().trains[i].active;
+				
+				var self = this;
+				
+				trainButton.addEvent('click', function() {
+					self.selectTrainButton(this);
+				});
+				
+				this.addChild(trainButton);
+				this.trainButtons.push(trainButton);
+			}
+			
+			var trackLabel = new __.Engine.UI.Label(CGRectMake(__.Engine.canvas.width / 4, 115, 0, 0));
+			trackLabel.text = "Track";
+			this.addChild(trackLabel);
+			
+			for(var i = 4; i > 0; i--) {
+				var trackButton = new TabButton(CGRectMake(3 * __.Engine.canvas.width / 4 - (30 * (5 - i)), 115, 30, 30));
+				trackButton.text = i.toString();
+				
+				for(var j = 0; j < Game.sharedGame().trains.length; j++) {
+					var train = Game.sharedGame().trains[j];
+					
+					if(!train.active) {
+						continue;
+					}
+					
+					if(j == this.selectedTrainButton()) {
+						continue;
+					}
+					
+					if(train.track == i) {
+						trackButton.disabled = true;
+					}
+				}
+				
+				var self = this;
+				
+				trackButton.addEvent('click', function() {
+					self.changeTrack(this);
+				});
+				
+				this.addChild(trackButton);
+				this.trackButtons.push(trackButton);
+			}
+			
+			this.actionButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 100) / 2, 200, 100, 48));
+			this.actionButton.addEvent('click', function() {
+				this.action();
+			}.bind(this));
+			this.addChild(this.actionButton);
+			
+			this.selectTrainButton(this.trainButtons[0]);
 		},
+		
+		changeTrack: function(trackButton) {
+			console.log(trackButton);
+			
+			var track = parseInt(trackButton.text, 10) - 1;
+			
+			if(Game.sharedGame().hasTracks.indexOf(track) == -1) {
+				return;
+			}
+			
+			for(var i = 0; i < this.trackButtons.length; i++) {
+				if(this.trackButtons[i].selected) {
+					this.trackButtons[i].selected = false;
+					
+					break;
+				}
+			}
+			
+			trackButton.selected = true;
+			
+			Game.sharedGame().trains[this.selectedTrainButton()].setTrack(track);
+		},
+		
+		selectTrainButton: function(newButton) {
+			for(var i = 0; i < this.trainButtons.length; i++) {
+				if(this.trainButtons[i].selected) {
+					this.trainButtons[i].selected = false;
+					
+					break;
+				}
+			}
+			
+			newButton.selected = true;
+			
+			var trainIdx = this.trainButtons.indexOf(newButton);
+			
+			var train = Game.sharedGame().trains[trainIdx];
+			
+			this.trackButtons.forEach(function(button) {
+				var i = parseInt(button.text, 10) - 1;
+				
+				button.selected = false;
+				button.disabled = false;
+				
+				if(Game.sharedGame().hasTracks.indexOf(i) == -1) {
+					button.disabled = true;
+				}
+				
+				for(var j = 0; j < Game.sharedGame().trains.length; j++) {
+					var aTrain = Game.sharedGame().trains[j];
+					
+					if(!train.active) {
+						continue;
+					}
+					
+					if(j == trainIdx) {
+						continue;
+					}
+					
+					if(aTrain.track == i) {
+						button.disabled = true;
+					}
+				}
+				
+				if(i == train.track) {
+					button.selected = true;
+				}
+			});
+			
+			this.actionButton.text = (train.active) ? "Sell" : "Buy";
+		},
+		
+		selectedTrainButton: function() {
+			for(var i = 0; i < this.trainButtons.length; i++) {
+				if(this.trainButtons[i].selected) {
+					return i;
+				}
+			}
+		},
+		
+		action: function() {
+			var trainIdx = this.selectedTrainButton();
+			
+			if(Game.sharedGame().trains[trainIdx].active) {
+				// Sell
+			} else {
+				// Buy
+				
+				if(Game.sharedGame().money < Game.Prices.TRAIN) {
+					alert('You don\'t have enough money to purcahse this train.');
+					
+					return;
+				}
+				
+				Game.sharedGame().subtractMoney(Game.Prices.TRAIN);
+				Game.sharedGame().trains[trainIdx].active = true;
+			}
+		}
 	});
 	
 	var TracksPlatformsOverlay = new Class({
@@ -1183,6 +1419,12 @@
 						for(var x = 0; x < Game.sharedGame().tilemap[1].length; x++) {
 							Game.sharedGame().tilemap[1][x][tileMapIdx] = 0;
 						}
+						
+						Game.sharedGame().trains.forEach(function(train) {
+							if(train.track == trackIndex) {
+								train.setTrack(-1);
+							}
+						});
 					}
 				} else {
 					var i = Game.sharedGame().hasPlatforms.indexOf(platformIndex);
@@ -1221,6 +1463,12 @@
 								Game.sharedGame().tilemap[1][x][tileMapIdx] = 0;
 							}
 						}
+						
+						Game.sharedGame().trains.forEach(function(train) {
+							if(train.track == track) {
+								train.setTrack(-1);
+							}
+						});
 					});
 				}
 			}
@@ -1237,9 +1485,9 @@
 		stationIdleTime : 200,
 		defaultStationIdleTime : 200,
 		flip : false,
+		active: false,
 		initialize : function(track) {
 			this.frame = CGRectMake(-192*4,0,192*3,48);
-			this.track = track;
 			this.capacity = 200;
 			this.locomotive = __.Engine.assets['locomotive1'];
 			this.flippedLocomotive = __.Engine.assets['locomotive1-flipped'];
@@ -1250,23 +1498,8 @@
 			this.stationIdleTime = 200;
 			this.defaultStationIdleTime = 200;
 			this.flip = false;
-			switch(this.track) {
-				case 0:
-				this.frame.origin.y = 96;
-				break;
-				
-				case 1:
-				this.frame.origin.y = 240;
-				break;
-				
-				case 2: 
-				this.frame.origin.y = 288;
-				break;
-				
-				case 3:
-				this.frame.origin.y = 432;
-				break;
-			}
+			
+			this.setTrack(track);
 		},
 		update : function(delta) {
 			var endX = 0;
@@ -1350,6 +1583,39 @@
 				ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x,this.frame.origin.y,this.car.width,this.car.height);
 			}
 		},
+		
+		setTrack: function(track) {
+			this.track = track;
+			
+			switch(this.track) {
+				case 0:
+				this.frame.origin.y = 96;
+				break;
+				
+				case 1:
+				this.frame.origin.y = 240;
+				break;
+				
+				case 2: 
+				this.frame.origin.y = 288;
+				break;
+				
+				case 3:
+				this.frame.origin.y = 432;
+				break;
+				
+				case -1:
+					this.travelTime = 1000;
+					this.defaultTravelTime = 1000;
+					this.stationIdleTime = 200;
+					this.defaultStationIdleTime = 200;
+					this.flip = false;
+					
+					this.frame.origin.x = (-192) * 4;
+					
+					break;
+			}
+		}
 	});
 	
 	var Platform = new Class({
