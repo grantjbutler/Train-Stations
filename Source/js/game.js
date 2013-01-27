@@ -841,8 +841,8 @@
 		},
 		
 		update : function(delta) {
-			for(var i=0; i < this.trains.length; i++) {
-				Game.sharedGame.trains[i].update(delta);
+			for(var i=0; i < Game.sharedGame().trains.length; i++) {
+				Game.sharedGame().trains[i].update(delta);
 			}
 			this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
 		},
@@ -1331,18 +1331,16 @@
 			}
 		}, 
 		render : function(ctx) {
-			//if (!this.isTraveling) {
-				if (this.flip) {
-					ctx.drawImage(this.flippedLocomotive, this.locomotive.width, 0,-this.locomotive.width, 48,this.frame.origin.x,this.frame.origin.y,this.locomotive.width,this.locomotive.height);
-					ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
-					ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.car.width,this.car.height);
+			if (this.flip) {
+				ctx.drawImage(this.flippedLocomotive, this.locomotive.width, 0,-this.locomotive.width, 48,this.frame.origin.x,this.frame.origin.y,this.locomotive.width,this.locomotive.height);
+				ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
+				ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.car.width,this.car.height);
 
-				} else {
-					ctx.drawImage(this.locomotive, 0, 0,this.locomotive.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.locomotive.width,this.locomotive.height);
-					ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
-					ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x,this.frame.origin.y,this.car.width,this.car.height);
-				}
-			//}
+			} else {
+				ctx.drawImage(this.locomotive, 0, 0,this.locomotive.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.locomotive.width,this.locomotive.height);
+				ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
+				ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x,this.frame.origin.y,this.car.width,this.car.height);
+			}
 		},
 	});
 	
