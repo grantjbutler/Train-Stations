@@ -1542,7 +1542,7 @@
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if(Math.random() * 100000 <= 1) {
+							if(Math.random() * 10000 <= 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
@@ -1579,7 +1579,7 @@
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if(Math.random() * 100000 <= 1) {
+							if(Math.random() * 10000 <= 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
