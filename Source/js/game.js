@@ -674,7 +674,7 @@
 		var __GAME = new Class({
 			state: 1, // 1 is "MENU".
 			
-			money: 10000,
+			money: 2000,
 			
 			trains: [],
 			
@@ -685,6 +685,11 @@
 		__GAME.State = {};
 		__GAME.State.MENU = 1;
 		__GAME.State.GAME = 2;
+		
+		__GAME.Prices = {};
+		__GAME.Prices.TRACK = 500;
+		__GAME.Prices.PLATFORM = 350;
+/* 		__GAME.Prices.PLATFORM_AND_TRACK = 750; */
 		
 		__SHARED_GAME = null;
 		
@@ -800,7 +805,6 @@
 				}
 			}
 			for(var i=0; i < this.trains.length; i++) {
-/* 				this.trains[i].update(delta); */
 				this.trains[i].render(ctx);
 			}
 		}
@@ -866,8 +870,7 @@
 				
 				CGContextSaveGState(ctx);
 				
-				ctx.globalCompositeOperation = 'source-atop';
-				ctx.fillStyle = 'rgb(0,0,0)';
+				ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
 				
 				if(isTrack) {
 					if(Game.sharedGame().hasTracks.indexOf(trackIndex) == -1) {
@@ -884,6 +887,171 @@
 				CGContextRestoreGState(ctx);
 				
 				isTrack = false;
+			}
+		},
+		
+		mouseUp: function(point) {
+				this.parent(point);
+			
+			if(!CGRectContainsPoint(CGRectMake(this._tilemapOrigin.x, this._tilemapOrigin.y, this._tilemapSize.width, this._tilemapSize.height), point)) {
+				return;
+			}
+			
+			var y = point.y - this._tilemapOrigin.y;
+			
+			var i = FLOOR(y / 48);
+			
+			var platformIndex = -1;
+			var trackIndex = 0;
+			
+			var isTrack = false;
+			
+			for(var j = 0; j < this._tilemap.length; j++) {
+				isTrack = (this._tilemap[j][0] == 13);
+				
+				if(this._tilemap[j][0] == 6) {
+					platformIndex++;
+				}
+				
+				if(i == j) {
+					break;
+				}
+				
+				if(this._tilemap[j][0] == 13) {
+					trackIndex++;
+				}
+			}
+			
+			var platformsToBuy = [];
+			var tracksToSell = [];
+			
+			var buying = true;
+			
+			if(isTrack) {
+				if(Game.sharedGame().hasTracks.indexOf(trackIndex) == -1) {
+					if(i < this._tilemap.length - 1) {
+						if(this._tilemap[i + 1][0] == 6) {
+							if(Game.sharedGame().hasPlatforms.indexOf(platformIndex + 1) == -1) {
+								platformsToBuy.push(platformIndex + 1);
+							}
+						}
+					}
+					
+					if(i > 0) {
+						if(this._tilemap[i - 1][0] == 14) {
+							if(Game.sharedGame().hasPlatforms.indexOf(platformIndex) == -1) {
+								platformsToBuy.push(platformIndex);
+							}
+						}
+					}
+				} else {
+					buying = false;
+				}
+			} else {
+				if(Game.sharedGame().hasPlatforms.indexOf(platformIndex) != -1) {
+					if((i - 1 >= 0 && this._tilemap[i - 1][0] == 13) || (i - 2 >= 0 && this._tilemap[i - 2][0] == 13)) {
+						tracksToSell.push(trackIndex - 1);
+					}
+					
+					if((i + 1 < this._tilemap.length && this._tilemap[i + 1][0] == 13) || (i + 2 < this._tilemap.length && this._tilemap[i + 2][0] == 13)) {
+						tracksToSell.push(trackIndex);
+					}
+					
+					buying = false;
+				}
+			}
+			
+			var price = 0;
+			
+			if(isTrack) {
+				if(buying) {
+					price = Game.Prices.TRACK;
+					price += (Game.Prices.PLATFORM * 0.8) * platformsToBuy.length;
+				} else {
+					price = Game.Prices.TRACK * 0.8;
+				}
+			} else {
+				if(buying) {
+					price = Game.Prices.PLATFORM;
+				} else {
+					price = (Game.Prices.PLATFORM + (Game.Prices.TRACK * tracksToSell.length)) * 0.8;
+				}
+			}
+			
+			if(buying) {
+				if(Game.sharedGame().money < price) {
+					alert('You don\'t have enough funds to purchase that.');
+					
+					return;
+				}
+			}
+			
+			var text = '';
+			
+			if(buying) {
+				if(isTrack) {
+					text = 'Are you sure you want to buy this track for ' + price + '?';
+					
+					if(platformsToBuy.length) {
+						text += ' You\'ll need to buy ' + platformsToBuy.length + ' platform' + ((platformsToBuy.length != 1) ? 's' : '') + ' to use the track.';
+					}
+				} else {
+					text = 'Are you sure you want to buy this platform for ' + price + '?';
+				}
+				
+				if(!confirm(text)) {
+					return;
+				}
+				
+				Game.sharedGame().money -= price;
+				
+				if(isTrack) {
+					Game.sharedGame().hasTracks.push(trackIndex);
+					
+					platformsToBuy.forEach(function(platform) {
+						Game.sharedGame().hasPlatforms.push(platform);
+					});
+				} else {
+					Game.sharedGame().hasPlatforms.push(platformIndex);
+				}
+			} else {
+				if(isTrack) {
+					text = 'Are you sure you want to sell this track for ' + price + '?';
+				} else {
+					text = 'Are you sure you want to sell this platform for ' + price + '?';
+					
+					if(tracksToSell.length) {
+						text += ' You\'ll need to sell ' + tracksToSell.length + ' track' + ((tracksToSell.length != 1) ? 's' : '') + '.'	;
+					}
+				}
+				
+				if(!confirm(text)) {
+					return;
+				}
+				
+				Game.sharedGame().money += price;
+				
+				if(isTrack) {
+					var i = Game.sharedGame().hasTracks.indexOf(trackIndex);
+					
+					if(i != -1) {
+						Game.sharedGame().hasTracks.splice(i, 1);
+					}
+				} else {
+					var i = Game.sharedGame().hasPlatforms.indexOf(platformIndex);
+					
+					if(i != -1) {
+						Game.sharedGame().hasPlatforms.splice(i, 1);
+					}
+					
+					tracksToSell.forEach(function(track) {
+						var i = Game.sharedGame().hasTracks.indexOf(track);
+						
+						if(i != -1) {
+							Game.sharedGame().hasTracks.splice(i, 1);
+						}
+					});
+				}
 			}
 		}
 	});
