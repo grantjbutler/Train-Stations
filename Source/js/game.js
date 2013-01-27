@@ -745,11 +745,6 @@
 			var yCount = __.Engine.canvas.height / 48;
 			var xCount = __.Engine.canvas.width / 48;
 			
-			this.platforms.push(new Platform(false));
-			this.platforms.push(new Platform(true));
-			
-			this.money = 10000;
-			
 			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
 				this.tilemap[layer] = new Array(xCount);
 				
@@ -782,7 +777,7 @@
 				}
 			}
 			
-			this.trains.push(new Train(2));
+			Game.sharedGame().trains.push(new Train(2));
 			
 			var tracksPlatformsButton = new __.Engine.UI.Button(CGRectMake(__.Engine.canvas.width - 10 - 200, 10, 200, 48));
 			tracksPlatformsButton.text = "Tracks & Platforms";
@@ -801,7 +796,7 @@
 		
 		update : function(delta) {
 			for(var i=0; i < this.trains.length; i++) {
-				this.trains[i].update(delta);
+				Game.sharedGame.trains[i].update(delta);
 			}
 			this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
 		},
@@ -817,17 +812,17 @@
 				}
 			}
 			for(var i=0; i < this.trains.length; i++) {
-				this.trains[i].render(ctx);
+				Game.sharedGame().trains[i].render(ctx);
 			}
 		},
 		
-		ticketTransaction : function() {
-			if (this.numberOfCustomers < 200) {
+		ticketTransaction : function(capacity) {
+			if (this.numberOfCustomers < capacity) {
 				Game.sharedGame().money += (this.numberOfCustomers * 5);
 				this.numberOfCustomers = 0;
 			} else {
-				Game.sharedGame().money += (200 * 5);
-				this.numberOfCustomers -= 200;
+				Game.sharedGame().money += (capacity * 5);
+				this.numberOfCustomers -= capacity;
 			}
 		}
 	});
@@ -1091,6 +1086,7 @@
 		initialize : function(track) {
 			this.frame = CGRectMake(-192*4,0,192*3,48);
 			this.track = track;
+			this.capacity = 200;
 			this.locomotive = __.Engine.assets['locomotive1'];
 			this.flippedLocomotive = __.Engine.assets['locomotive1-flipped'];
 			this.flippedCar = __.Engine.assets['car1-flipped'];
