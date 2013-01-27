@@ -764,7 +764,7 @@
 		Extends: __.Engine.Screen,
 		
 		initialize: function() {
-			var startGameButton = new __.Engine.UI.Button(CGRectMake(20, 20, 125, 48));
+			var startGameButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 125) / 2.0, 375, 125, 48));
 			startGameButton.text = "Start Game";
 			startGameButton.addEvent('click', function() {
 				Game.sharedGame().state = Game.State.GAME;
@@ -773,6 +773,16 @@
 			});
 			
 			this.addChild(startGameButton);
+			
+			var titleLabel = new __.Engine.UI.Label(CGRectMake((__.Engine.canvas.width - 300) / 2.0, 30, 300, 60));
+			titleLabel.text = "Station Master";
+			titleLabel.fontSize = 48;
+			
+			this.addChild(titleLabel);
+		},
+		
+		render: function(delta, ctx) {
+			ctx.drawImage(__.Engine.assets['title-screen'], 0, 0);
 		}
 	});
 	
@@ -819,7 +829,7 @@
 			});
 			this.addChild(trainsButton);
 			
-			this.moneyLabel = new __.Engine.UI.Label(CGRectMake(10, 10, 150, 20));
+			this.moneyLabel = new __.Engine.UI.Label(CGRectMake(10, 10, 0, 0));
 			this.moneyLabel.text = 'Money: $' + Game.sharedGame().money;
 			this.moneyLabel.sizeToFit();
 			this.addChild(this.moneyLabel);
@@ -856,10 +866,10 @@
 		
 		ticketTransaction : function() {
 			if (this.numberOfCustomers < 200) {
-				Game.sharedGame().money += (this.numberOfCustomers * 5);
+				Game.sharedGame().addMoney(this.numberOfCustomers * 5);
 				this.numberOfCustomers = 0;
 			} else {
-				Game.sharedGame().money += (200 * 5);
+				Game.sharedGame().addMoney(200 * 5);
 				this.numberOfCustomers -= 200;
 			}
 		}
@@ -1258,12 +1268,12 @@
 						this.frame.origin.x -= 3;
 						if (this.frame.origin.x < endX) {
 							this.frame.origin.x = endX;
-							__.Engine._currentScreen.ticketTransaction();
 						}
 					}
 					if (this.frame.origin.x <= endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						}
@@ -1274,12 +1284,12 @@
 						this.frame.origin.x += 3;
 						if (this.frame.origin.x+this.frame.size.width > endX) {
 							this.frame.origin.x = endX-this.frame.size.width;
-							__.Engine._currentScreen.ticketTransaction();
 						}
 					}
 					if (this.frame.origin.x+this.frame.size.width == endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						}
