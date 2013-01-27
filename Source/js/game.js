@@ -809,6 +809,8 @@
 		
 		tracks : [],
 		
+		frame : 0,
+		
 		numberOfCustomers : 0,
 		
 		moneyLabel: null,
@@ -838,6 +840,8 @@
 			this.moneyLabel.sizeToFit();
 			this.addChild(this.moneyLabel);
 			
+			this.frame = 0;
+			
 			Game.sharedGame().addEvent('money', function() {
 				this.moneyLabel.text = 'Money: $' + Game.sharedGame().money;
 				this.moneyLabel.sizeToFit();
@@ -852,7 +856,11 @@
 					train.update(delta);
 				}
 			}
-			this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
+			this.frame++;
+			if (this.frame >= 15 && Game.sharedGame().trains.length > 0) {
+				this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
+				this.frame = 0;
+			}
 		},
 		
 		render: function(delta, ctx) {
