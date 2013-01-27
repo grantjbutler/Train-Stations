@@ -781,7 +781,7 @@
 			this.addChild(startGameButton);
 			
 			var titleLabel = new __.Engine.UI.Label(CGRectMake((__.Engine.canvas.width - 300) / 2.0, 30, 300, 60));
-			titleLabel.text = "Station Master";
+			titleLabel.text = "Train Mania: Off Da Railz";
 			titleLabel.fontSize = 48;
 			
 			this.addChild(titleLabel);
