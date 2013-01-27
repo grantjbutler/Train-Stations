@@ -91,8 +91,6 @@
 		},
 		
 		keyDown: function(e) {
-			console.log(e);
-			
 			if(e.metaKey) {
 				// We don't capture keyboard shortcuts
 				return;
@@ -107,7 +105,7 @@
 			if('keyDown' in firstResponder) {
 				var keyCode = e.keyCode || e.which;
 				
-				var key = String.fromCharCode(keyCode);
+				var key = String.fromCharCode(keyCode).replace(/[^a-zA-Z0-9]+/, '');
 				
 				if(!key.length) {
 					if(keyCode == 27) {
@@ -137,7 +135,7 @@
 			if('keyUp' in firstResponder) {
 				var keyCode = e.keyCode || e.which;
 				
-				var key = String.fromCharCode(keyCode);
+				var key = String.fromCharCode(keyCode).replace(/[^a-zA-Z0-9]+/, '');
 				
 				if(!key.length) {
 					if(keyCode == 27) {
@@ -145,7 +143,7 @@
 					}
 				}
 				
-				firstResponder.keyDown(key.toLowerCase());
+				firstResponder.keyUp(key.toLowerCase());
 				
 				e.preventDefault();
 				e.stopPropagation();
