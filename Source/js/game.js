@@ -3,6 +3,9 @@
 		_isRunning: false,
 		_startTime: __.mozAnimationStartTime || Date.now(),
 		
+		_currentScreen: null,
+		_currentOverlay: null,
+		
 		canvas: null,
 		ctx: null,
 		
@@ -12,7 +15,9 @@
 			var delta = timestamp - __.Engine._startTime;
 			
 			if(__.Engine._currentScreen != null) {
-				__.Engine._currentScreen.update(delta);
+				if(__.Engine._currentOverlay == null) {
+					__.Engine._currentScreen.update(delta);
+				}
 				
 				CGContextSetFillColor(__.Engine.ctx, CGColorCreateGenericRGB(0.3922, 0.5843, 0.9294, 1.0));
 				CGContextClearRect(__.Engine.ctx, CGRectMake(0, 0, __.Engine.ctx.canvas.width, __.Engine.ctx.canvas.height));
@@ -21,6 +26,16 @@
 				CGContextSaveGState(__.Engine.ctx);
 				
 				__.Engine._currentScreen.needsDisplay(delta, __.Engine.ctx);
+				
+				CGContextRestoreGState(__.Engine.ctx);
+			}
+			
+			if(__.Engine._currentOverlay != null) {
+				__.Engine._currentOverlay.update(delta);
+				
+				CGContextSaveGState(__.Engine.ctx);
+				
+				__.Engine._currentOverlay.render(delta, __.Engine.ctx);
 				
 				CGContextRestoreGState(__.Engine.ctx);
 			}
@@ -65,6 +80,14 @@
 		
 		setScreen: function(screen) {
 			__.Engine._currentScreen = screen;
+		},
+		
+		showOverlay: function(overlay) {
+			__.Engine._currentOverlay = overlay;
+		},
+		
+		hideOverlay: function() {
+			__.Engine._currentOverlay = null;
 		},
 		
 		mouseDown: function(e) {
@@ -231,12 +254,45 @@
 		},
 	});
 	
+	__.Engine.Overlay = new Class({
+		Extends: __.Engine.Screen,
+		
+		render: function(delta, ctx) {
+			CGContextSaveGState(ctx);
+			
+			CGContextSetFillColor(ctx, CGColorCreateGenericRGB(0.0, 0.0, 0.0, 0.5));
+			CGContextFillRect(ctx, CGRectMake(0, 0, __.Engine.canvas.width, __.Engine.canvas.height));
+			
+			CGContextRestoreGState(ctx);
+		},
+		
+		update: function(delta) {
+			
+		}
+	});
+	
 	__.Engine.UI = {};
 	
-	__.Engine.UI.Button = new Class({
-		Implements: [Events],
-		
+	__.Engine.UI.View = new Class({
 		frame: CGRectMakeZero(),
+		
+		mouseMove: function(point) {
+			
+		},
+		
+		mouseDown: function(point) {
+			
+		},
+		
+		mouseUp: function(point) {
+			
+		}
+	});
+	
+	__.Engine.UI.Button = new Class({
+		Extends: __.Engine.UI.View,
+		
+		Implements: [Events],
 		
 		_text: "",
 		_textMeasurements: { width: 0, height: 0 },
@@ -395,6 +451,131 @@
 			
 			this._mouseDown = false;
 			this.highlighted = false;
+		}
+	});
+	
+	__.Engine.UI.Label = new Class({
+		Extends: __.Engine.UI.View,
+		
+		_text: "",
+		_textMeasurements: { width: 0, height: 0 },
+		
+		_font: null,
+		_fontSize: 18,
+		
+		Attributes: {
+			font: {
+				set: function(newFont) {
+					this._font = new Font();
+					this._font.fontFamily = newFont;
+					this._font.src = this._font.fontFamily;
+					
+					this._font.onload = (function() {
+						this._measureText();
+					}.bind(this));
+					
+					this._font.onerror = function() {
+						console.log(arguments);
+					}
+				},
+				get: function() {
+					return this._font.fontFamily;
+				}
+			},
+			
+			text: {
+				set: function(text) {
+					this._text = text;
+					
+					this._measureText();
+				},
+				
+				get: function() {
+					return this._text;
+				}
+			},
+			
+			fontSize: {
+				set: function(size) {
+					this._fontSize = size;
+					
+					this._measureText();
+				},
+				
+				get: function() {
+					return this._fontSize;
+				}
+			}
+		},
+		
+		_measureText: function() {
+			if(!this._font.loaded) {
+				return;
+			}
+			
+			this._textMeasurements = this._font.measureText(this.text, this.fontSize);
+			
+			if(this.frame.size.width == 0 || this.frame.size.height == 0) {
+				this.sizeToFit();
+			}
+		},
+		
+		initialize: function(frame) {
+			this.frame = frame || CGRectMakeZero();
+			
+			this.font = "Helvetica";
+		},
+		
+		sizeToFit: function() {
+			if(!this._font || !this._font.loaded) {
+				return;
+			}
+			
+			var textSize = this._textMeasurements;
+			
+			this.frame.size.width = textSize.width;
+			this.frame.size.height = textSize.height;
+		},
+		
+		render: function(ctx) {
+			if(this.text.length && this._font && this._font.loaded) {
+				CGContextSetFillColor(ctx, CGColorCreateGenericRGB(1, 1, 1, 1.0));
+				
+				var textSize = this._textMeasurements;
+				
+				var origin = CGPointMake(CGRectGetMinX(this.frame) + ROUND((CGRectGetWidth(this.frame) - textSize.width) / 2.0), CGRectGetMinY(this.frame) + ROUND((CGRectGetHeight(this.frame) - textSize.height) / 2.0));
+				
+				ctx.font = this.fontSize + "px " + this.font;
+				ctx.textBaseline = "top";
+				ctx.fillText(this.text, origin.x, origin.y - 2);
+			}
+		}
+	});
+	
+	__.Engine.UI.ImageView = new Class({
+		Extends: __.Engine.UI.View,
+		
+		image: null,
+		
+		initialize: function(frame) {
+			if(frame instanceof HTMLImageElement) {
+				this.image = frame;
+			} else {
+				this.frame = frame || CGRectMakeZero();
+			}
+		},
+		
+		sizeToFit: function() {
+			if(!this.image) {
+				return;
+			}
+			
+			this.frame.size.width = this.image.width;
+			this.frame.size.height = this.image.height;
+		},
+		
+		render: function(ctx) {
+			CGContextDrawImage(ctx, this.frame, { _image: this.image });
 		}
 	});
 })(window);
