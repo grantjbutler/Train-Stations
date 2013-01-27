@@ -1033,8 +1033,6 @@
 		},
 		
 		changeTrack: function(trackButton) {
-			console.log(trackButton);
-			
 			var track = parseInt(trackButton.text, 10) - 1;
 			
 			if(Game.sharedGame().hasTracks.indexOf(track) == -1) {
@@ -1082,7 +1080,7 @@
 				for(var j = 0; j < Game.sharedGame().trains.length; j++) {
 					var aTrain = Game.sharedGame().trains[j];
 					
-					if(!train.active) {
+					if(!aTrain.active) {
 						continue;
 					}
 					
@@ -1127,6 +1125,8 @@
 				
 				Game.sharedGame().subtractMoney(Game.Prices.TRAIN);
 				Game.sharedGame().trains[trainIdx].active = true;
+				
+				this.selectTrainButton(this.trainButtons[trainIdx]);
 			}
 		}
 	});
