@@ -763,10 +763,8 @@
 	var MainScreen = new Class({
 		Extends: __.Engine.Screen,
 		
-		_font: null,
-		
 		initialize: function() {
-			var startGameButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 125) / 2.0, 375, 125, 48));
+			var startGameButton = new __.Engine.UI.Button(CGRectMake(20, 20, 125, 48));
 			startGameButton.text = "Start Game";
 			startGameButton.addEvent('click', function() {
 				Game.sharedGame().state = Game.State.GAME;
@@ -775,17 +773,6 @@
 			});
 			
 			this.addChild(startGameButton);
-			
-			var titleLabel = new __.Engine.UI.Label(CGRectMake((__.Engine.canvas.width - 300) / 2.0, 30, 300, 60));
-			titleLabel.text = "Station Master";
-			titleLabel.fontSize = 48;
-			
-			this.addChild(titleLabel);
-		},
-		
-		render: function(delta, ctx) {
-			ctx.drawImage(__.Engine.assets['title-screen'], 0, 0);
-			
 		}
 	});
 	
@@ -847,7 +834,7 @@
 			for(var i=0; i < this.trains.length; i++) {
 				this.trains[i].update(delta);
 			}
-			this.numberOfCustomers += Math.floor(Math.random() * (this.platforms.length)) + 1;
+			this.numberOfCustomers += Math.floor(Math.random() * (Game.sharedGame().hasTracks.length * Game.sharedGame().hasPlatforms.length)) + 1;
 		},
 		
 		render: function(delta, ctx) {
@@ -869,10 +856,10 @@
 		
 		ticketTransaction : function() {
 			if (this.numberOfCustomers < 200) {
-				this.money += (this.numberOfCustomers * 5);
+				Game.sharedGame().money += (this.numberOfCustomers * 5);
 				this.numberOfCustomers = 0;
 			} else {
-				this.money += (200 * 5);
+				Game.sharedGame().money += (200 * 5);
 				this.numberOfCustomers -= 200;
 			}
 		}
