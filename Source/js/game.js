@@ -814,7 +814,7 @@
 			this.platforms.push(new Platform(true));
 			
 			this.trains.push(new Train(2));
-			
+						
 			var tracksPlatformsButton = new __.Engine.UI.Button(CGRectMake(__.Engine.canvas.width - 10 - 200, 10, 200, 48));
 			tracksPlatformsButton.text = "Tracks & Platforms";
 			tracksPlatformsButton.addEvent('click', function() {
@@ -877,6 +877,14 @@
 	
 	var TrainsOverlay = new Class({
 		Extends: __.Engine.Overlay,
+		
+		initialize: function() {
+			this.parent();
+			
+			var titleLabel = new __.Engine.UI.Label(CGRectMake(((__.Engine.canvas.width - 200) / 2.0), 10, 200, 40));
+			titleLabel.text = "Trains";
+			this.addChild(titleLabel);
+		},
 	});
 	
 	var TracksPlatformsOverlay = new Class({
