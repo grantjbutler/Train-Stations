@@ -961,6 +961,9 @@
 		
 		actionButton: null,
 		
+		capacityLevelLabel: null,
+		capacityButton: null,
+		
 		initialize: function() {
 			this.parent();
 			
@@ -989,7 +992,7 @@
 				this.trainButtons.push(trainButton);
 			}
 			
-			var trackLabel = new __.Engine.UI.Label(CGRectMake(__.Engine.canvas.width / 4, 115, 0, 0));
+			var trackLabel = new __.Engine.UI.Label(CGRectMake(__.Engine.canvas.width / 4, 125, 0, 0));
 			trackLabel.text = "Track";
 			this.addChild(trackLabel);
 			
@@ -1023,13 +1026,45 @@
 				this.trackButtons.push(trackButton);
 			}
 			
-			this.actionButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 100) / 2, 200, 100, 48));
+			var capacityLabel = new __.Engine.UI.Label(CGRectMake(__.Engine.canvas.width / 4, 165, 0, 0))
+			capacityLabel.text = "Capacity";
+			this.addChild(capacityLabel);
+			
+			this.capacityButton = new __.Engine.UI.Button(CGRectMake(3 * __.Engine.canvas.width / 4 - 32, 160, 32, 32));
+			this.capacityButton.text = "+";
+			this.capacityButton.addEvent('click', function() {
+				this.upgradeCapacity();
+			}.bind(this));
+			this.addChild(this.capacityButton);
+			
+			this.capacityLevelLabel = new __.Engine.UI.Label(CGRectMake(this.capacityButton.frame.origin.x - 75, 160, 48, 24))
+			this.addChild(this.capacityLevelLabel);
+			
+			this.actionButton = new __.Engine.UI.Button(CGRectMake((__.Engine.canvas.width - 100) / 2, 300, 100, 48));
 			this.actionButton.addEvent('click', function() {
 				this.action();
 			}.bind(this));
 			this.addChild(this.actionButton);
 			
 			this.selectTrainButton(this.trainButtons[0]);
+		},
+		
+		upgradeCapacity: function() {
+			var train = Game.sharedGame().trains[this.selectedTrainButton()];
+			
+			var level = train.capacity / 50 + 1;
+			
+			var price = 50 + (level * 25);
+			
+			if(!confirm('Are you sure you want to increase capacity for $' + price + '?')) {
+				return;
+			}
+			
+			Game.sharedGame().subtractMoney(price);
+			
+			train.capacity = level * 50;
+			
+			this.capacityLevelLabel.text = "Lv. " + level;
 		},
 		
 		changeTrack: function(trackButton) {
@@ -1099,6 +1134,9 @@
 			});
 			
 			this.actionButton.text = (train.active) ? "Sell" : "Buy";
+			
+			this.capacityButton.disabled = (!train.active);
+			this.capacityLevelLabel.text = "Lv. " + (train.capacity / 50);
 		},
 		
 		selectedTrainButton: function() {
@@ -1115,13 +1153,22 @@
 			if(Game.sharedGame().trains[trainIdx].active) {
 				// Sell
 				
+				if(!confirm('Are you sure you want to sell this train for $' + (Game.Prices.TRAIN * 0.8) + '?')) {
+					return;
+				}
+				
 				Game.sharedGame().addMoney(Game.Prices.TRAIN * 0.8);
 				Game.sharedGame().trains[trainIdx].active = false;
+				Game.sharedGame().trains[trainIdx].capacity = 50;
 				Game.sharedGame().trains[trainIdx].setTrack(-1);
 				
 				this.selectTrainButton(this.trainButtons[trainIdx]);
 			} else {
 				// Buy
+				
+				if(!confirm('Are you sure you want to buy this train for $' + Game.Prices.TRAIN + '?')) {
+					return;
+				}
 				
 				if(Game.sharedGame().money < Game.Prices.TRAIN) {
 					alert('You don\'t have enough money to purcahse this train.');
@@ -1506,9 +1553,11 @@
 		cloudBounds: null,
 		cloudXSpd: -1,
 		cloudYSpd: 1,
+		health: 500,
+		defaultHealth: 500,
 		initialize : function(track) {
 			this.frame = CGRectMake(-192*4,0,192*3,48);
-			this.capacity = 200;
+			this.capacity = 50;
 			this.locomotive = __.Engine.assets['locomotive1'];
 			this.flippedLocomotive = __.Engine.assets['locomotive1-flipped'];
 			this.flippedCar = __.Engine.assets['car1-flipped'];
@@ -1530,19 +1579,24 @@
 					endX = 48;
 					if (this.frame.origin.x > endX) {
 						this.frame.origin.x -= 3;
-						if (this.frame.origin.x < endX) {
+						if (this.frame.origin.x <= endX) {
+							this.health -= 2;
+							
 							this.frame.origin.x = endX;
 						}
 					}
 					if (this.frame.origin.x <= endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							if(this.breakdown) {
+								this.health = this.defaultHealth;
+							}
 							this.breakdown = false;
 							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if(Math.random() * 10000 <= 1) {
+							if(Math.random() * this.health <= 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
@@ -1567,19 +1621,23 @@
 					endX = __.Engine.canvas.width - 48;
 					if (this.frame.origin.x+this.frame.size.width < endX) {
 						this.frame.origin.x += 3;
-						if (this.frame.origin.x+this.frame.size.width > endX) {
+						if (this.frame.origin.x+this.frame.size.width >= endX) {
+							this.health -= 2;
 							this.frame.origin.x = endX-this.frame.size.width;
 						}
 					}
 					if (this.frame.origin.x+this.frame.size.width == endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							if(this.breakdown) {
+								this.health = this.defaultHealth;
+							}
 							this.breakdown = false;
 							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
 						} else if(!this.breakdown) {
-							if(Math.random() * 10000 <= 1) {
+							if(Math.random() * this.health <= 1) {
 								// Oh noes breakdown!!!!
 								this.doBreakdown();
 							}
@@ -1692,7 +1750,7 @@
 		doBreakdown: function() {
 			this.breakdown = true;
 			
-			this.stationIdleTime = this.defaultStationIdleTime * 2;
+			this.stationIdleTime = this.defaultStationIdleTime * Math.floor((Math.random() * 5) + 1);
 			
 			if(this.flip) {
 				this.cloudOrigin = CGPointMake(15, 0);
