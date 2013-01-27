@@ -6,6 +6,8 @@
 		canvas: null,
 		ctx: null,
 		
+		assets: {},
+		
 		render: function(timestamp) {
 			var delta = timestamp - __.Engine._startTime;
 			
@@ -45,6 +47,16 @@
 			__.Engine.canvas.addEventListener('mousedown', __.Engine.mouseDown, false);
 			__.Engine.canvas.addEventListener('mousemove', __.Engine.mouseMove, false);
 			__.Engine.canvas.addEventListener('mouseup', __.Engine.mouseUp, false);
+			
+			var imgs = document.getElementById('resources').getElementsByTagName('img');
+			
+			for(var i = 0; i < imgs.length; i++) {
+				var lastSlash = imgs[i].src.lastIndexOf('/');
+				var lastPeriod = imgs[i].src.lastIndexOf('.');
+				var length = lastPeriod - lastSlash;
+				
+				__.Engine.assets[imgs[i].src.substr(lastSlash, length)] = imgs[i];
+			}
 			
 			__.Engine.requestAnimationFrame.call(__, __.Engine.render);
 		},
@@ -300,13 +312,10 @@
 			
 			this.font = "Helvetica";
 			
-/*
-			this._buttonBG = new Image();
-			this._buttonBG.src = "img/game_button.png";
-			
-			this._buttonBGSelected = new Image();
-			this._buttonBGSelected.src = "img/game_button_pressed.png";
-*/
+
+			this._buttonBG = __.Engine.assets['button'];
+			this._buttonBGSelected = __.Engine.assets['button-pressed'];
+
 		},
 		
 		sizeToFit: function() {
@@ -316,34 +325,29 @@
 			
 			var textSize = this._textMeasurements;
 			
-			console.log(this._textMeasurements);
-			
 			this.frame.size.width = textSize.width + 20;
 			this.frame.size.height = textSize.height + 20;
 		},
 		
 		render: function(ctx) {
 			// TODO: Replace this with button stylings.
-/*
+
 			var img = this._buttonBG;
 			
 			if(this.highlighted) {
 				img = this._buttonBGSelected;
 			}
-*/
+
 			
 			if(this.disabled) {
 				CGContextSetAlpha(ctx, 0.5);
 			}
 			
-/*
+
 			ctx.drawImage(img, 0, 0, 12, img.height, this.frame.origin.x, this.frame.origin.y, 12, this.frame.size.height);
 			ctx.drawImage(img, img.width - 12, 0, 12, img.height, this.frame.origin.x + this.frame.size.width - 12, this.frame.origin.y, 12, this.frame.size.height);
 			CGContextDrawTiledImage(ctx, CGRectMake(13, 0, 1, img.height), CGRectInset(this.frame, 12, 0), img);
-*/
-			
-			CGContextSetFillColor(ctx, CGColorCreateGenericRGB(1, 0, 0, 1));
-			CGContextFillRect(ctx, this.frame);
+
 			
 			if(this.text.length && this._font && this._font.loaded) {
 				CGContextSetFillColor(ctx, CGColorCreateGenericRGB(1, 1, 1, 1.0));
@@ -421,7 +425,7 @@
 		Extends: __.Engine.Screen,
 		
 		initialize: function() {
-			var startGameButton = new __.Engine.UI.Button(CGRectMake(20, 20, 0, 0));
+			var startGameButton = new __.Engine.UI.Button(CGRectMake(20, 20, 125, 48));
 			startGameButton.text = "Start Game";
 			startGameButton.addEvent('click', function() {
 				Game.sharedGame().state = Game.State.GAME;
@@ -430,6 +434,44 @@
 			});
 			
 			this.addChild(startGameButton);
+		}
+	});
+	
+	var GameScreen = new Class({
+		Extends: __.Engine.Screen,
+		
+		map: null,
+		
+		tilemap: {
+			0: [
+				
+			],
+			
+			1: [
+				
+			],
+		}
+		
+		initalize: function() {
+			this.map = __.Engine.assets['tilemap'];
+			
+			for(var y = 0, yCount = __.Engine.canvas.height / 48; y < yCount; y++) {
+				for(var x = 0, xCount = __.Engine.canvas.width / 48; x < xCount; x++) {
+					this.tilemap[0][x][y] = Math.random() % 4 + 1;
+				}
+			}
+		},
+		
+		render: function(delta, ctx) {
+			for(var layer = 0, count = this.tilemap.length; layer < count; layer++) {
+				for(var x = 0, xCount = this.tilemap[layer].length; x < xCount; x++) {
+					for(var y = 0, yCount = this.tilemap[layer][x].length; y < yCount; y++) {
+						
+					}
+				}
+			}
+			
+			
 		}
 	});
 	
