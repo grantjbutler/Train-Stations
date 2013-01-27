@@ -1500,6 +1500,12 @@
 		defaultStationIdleTime : 200,
 		flip : false,
 		active: false,
+		breakdown: false,
+		cloud: null,
+		cloudOrigin: null,
+		cloudBounds: null,
+		cloudXSpd: -1,
+		cloudYSpd: 1,
 		initialize : function(track) {
 			this.frame = CGRectMake(-192*4,0,192*3,48);
 			this.capacity = 200;
@@ -1514,6 +1520,8 @@
 			this.flip = false;
 			
 			this.setTrack(track);
+			
+			this.cloud = __.Engine.assets['cloud'];
 		},
 		update : function(delta) {
 			var endX = 0;
@@ -1529,9 +1537,30 @@
 					if (this.frame.origin.x <= endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							this.breakdown = false;
 							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
+						} else if(!this.breakdown) {
+							if(Math.random() * 100000 <= 1) {
+								// Oh noes breakdown!!!!
+								this.doBreakdown();
+							}
+						} else if(this.breakdown) {
+							if(Math.floor(this.stationIdleTime % 15) == 0) {
+								Game.sharedGame().subtractMoney(10);
+								
+								this.cloudOrigin.x += this.cloudXSpd;
+								this.cloudOrigin.y += this.cloudYSpd;
+								
+								if(Math.floor(this.stationIdleTime % 15) == 0) {
+									this.cloudXSpd = -this.cloudXSpd;
+								}
+								
+								if(Math.floor(this.stationIdleTime % 30) == 0) {
+									this.cloudYSpd = -this.cloudYSpd;
+								}
+							}
 						}
 					}
 				} else {
@@ -1545,9 +1574,30 @@
 					if (this.frame.origin.x+this.frame.size.width == endX) {
 						this.stationIdleTime--;
 						if (this.stationIdleTime == 0) {
+							this.breakdown = false;
 							__.Engine._currentScreen.ticketTransaction();
 							this.isTraveling = true;
 							this.stationIdleTime = this.defaultStationIdleTime;
+						} else if(!this.breakdown) {
+							if(Math.random() * 100000 <= 1) {
+								// Oh noes breakdown!!!!
+								this.doBreakdown();
+							}
+						} else if(this.breakdown) {
+							if(Math.floor(this.stationIdleTime % 15) == 0) {
+								Game.sharedGame().subtractMoney(10);
+								
+								this.cloudOrigin.x += this.cloudXSpd;
+								this.cloudOrigin.y += this.cloudYSpd;
+								
+								if(Math.floor(this.stationIdleTime % 15) == 0) {
+									this.cloudXSpd = -this.cloudXSpd;
+								}
+								
+								if(Math.floor(this.stationIdleTime % 30) == 0) {
+									this.cloudYSpd = -this.cloudYSpd;
+								}
+							}
 						}
 					}
 				}
@@ -1590,11 +1640,19 @@
 				ctx.drawImage(this.flippedLocomotive, this.locomotive.width, 0,-this.locomotive.width, 48,this.frame.origin.x,this.frame.origin.y,this.locomotive.width,this.locomotive.height);
 				ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
 				ctx.drawImage(this.flippedCar, 0, 0,this.car.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.car.width,this.car.height);
+				
+				if(this.breakdown) {
+					ctx.drawImage(this.cloud, this.frame.origin.x + this.cloudOrigin.x, this.frame.origin.y + this.cloudOrigin.y);
+				}
 
 			} else {
 				ctx.drawImage(this.locomotive, 0, 0,this.locomotive.width, 48,this.frame.origin.x+(192*2),this.frame.origin.y,this.locomotive.width,this.locomotive.height);
 				ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x+192,this.frame.origin.y,this.car.width,this.car.height);
 				ctx.drawImage(this.car, 0, 0,this.car.width, 48,this.frame.origin.x,this.frame.origin.y,this.car.width,this.car.height);
+				
+				if(this.breakdown) {
+					ctx.drawImage(this.cloud, this.frame.origin.x + this.cloudOrigin.x, this.frame.origin.y + this.cloudOrigin.y);
+				}
 			}
 		},
 		
@@ -1628,6 +1686,20 @@
 					this.frame.origin.x = (-192) * 4;
 					
 					break;
+			}
+		},
+			
+		doBreakdown: function() {
+			this.breakdown = true;
+			
+			this.stationIdleTime = this.defaultStationIdleTime * 2;
+			
+			if(this.flip) {
+				this.cloudOrigin = CGPointMake(15, 0);
+				this.cloudBounds = CGRectMake(10, 10, 10, 10);
+			} else {
+				this.cloudOrigin = CGPointMake(this.frame.size.width - this.cloud.width - 15, 0);
+				this.cloudBounds = CGRectMake(10, 10, 10, 10);
 			}
 		}
 	});
