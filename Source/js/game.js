@@ -634,7 +634,7 @@
 				
 				var origin = CGPointMake(CGRectGetMinX(this.frame) + ROUND((CGRectGetWidth(this.frame) - textSize.width) / 2.0), CGRectGetMinY(this.frame) + ROUND((CGRectGetHeight(this.frame) - textSize.height) / 2.0));
 				
-				ctx.font = this.fontSize + "px " + this.font;
+				ctx.font = "bold " + this.fontSize + "px " + this.font;
 				ctx.textBaseline = "top";
 				ctx.fillText(this.text, origin.x, origin.y - 2);
 			}
@@ -677,6 +677,9 @@
 			money: 10000,
 			
 			trains: [],
+			
+			hasTracks: [],
+			hasPlatforms: [],
 		});
 		
 		__GAME.State = {};
@@ -794,7 +797,19 @@
 	});
 	
 	var TracksPlatformsOverlay = new Class({
-		Extends: __.Engine.Overlay
+		Extends: __.Engine.Overlay,
+		
+		initialize: function() {
+			var titleLabel = new __.Engine.UI.Label(CGRectMake(((__.Engine.canvas.width - 200) / 2.0), 10, 200, 40));
+			titleLabel.text = "Tracks & Platforms";
+			this.addChild(titleLabel);
+		},
+		
+/*
+		render: function(delta, ctx) {
+			
+		}
+*/
 	});
 	
 	window.addEventListener('load', function() {
