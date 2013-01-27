@@ -678,8 +678,8 @@
 			
 			trains: [],
 			
-			hasTracks: [],
-			hasPlatforms: [],
+			hasTracks: [2],
+			hasPlatforms: [1],
 		});
 		
 		__GAME.State = {};
@@ -799,17 +799,80 @@
 	var TracksPlatformsOverlay = new Class({
 		Extends: __.Engine.Overlay,
 		
+		map: null,
+		
+		_tilemap: [
+			[13, 13, 13, 13, 13, 13, 13, 13],
+			[ 6,  7,  7,  7,  7,  7,  7,  8],
+			[14, 15, 15, 15, 15, 15, 15, 16],
+			[13, 13, 13, 13, 13, 13, 13, 13],
+			[13, 13, 13, 13, 13, 13, 13, 13],
+			[ 6,  7,  7,  7,  7,  7,  7,  8],
+			[14, 15, 15, 15, 15, 15, 15, 16],
+			[13, 13, 13, 13, 13, 13, 13, 13]
+		],
+		
+		_tilemapOrigin: null,
+		_tilemapSize: null,
+		
 		initialize: function() {
+			this.parent();
+			
 			var titleLabel = new __.Engine.UI.Label(CGRectMake(((__.Engine.canvas.width - 200) / 2.0), 10, 200, 40));
 			titleLabel.text = "Tracks & Platforms";
 			this.addChild(titleLabel);
+			
+			this.map = __.Engine.assets['tilemap'];
+			
+			this._tilemapSize = CGSizeMake(this._tilemap[0].length * 48, this._tilemap.length * 48);
+			this._tilemapOrigin = CGPointMake((__.Engine.canvas.width - this._tilemapSize.width) / 2.0, 65);
 		},
 		
-/*
+
 		render: function(delta, ctx) {
+			this.parent(delta, ctx);
 			
+			var isTrack = false;
+			
+			var trackIndex = 0;
+			var platformIndex = -1;
+			
+			for(var y = 0; y < this._tilemap.length; y++) {
+				for(var x = 0; x < this._tilemap[y].length; x++) {
+					var val = this._tilemap[y][x];
+					
+					isTrack = (val == 13);
+					
+					if(val == 6) {
+						platformIndex++;
+					}
+					
+					ctx.drawImage(this.map, ((val - 1) % 4) * 48, FLOOR((val - 1) / 4) * 48, 48, 48, this._tilemapOrigin.x + x * 48, this._tilemapOrigin.y + y * 48, 48, 48);
+				}
+				
+				CGContextSaveGState(ctx);
+				
+				ctx.globalCompositeOperation = 'source-atop';
+				ctx.fillStyle = 'rgb(0,0,0)';
+				
+				if(isTrack) {
+					if(Game.sharedGame().hasTracks.indexOf(trackIndex) == -1) {
+						CGContextFillRect(ctx, CGRectMake(this._tilemapOrigin.x, this._tilemapOrigin.y + y * 48, this._tilemapSize.width, 48));
+					}
+					
+					trackIndex++;
+				} else {
+					if(Game.sharedGame().hasPlatforms.indexOf(platformIndex) == -1) {
+						CGContextFillRect(ctx, CGRectMake(this._tilemapOrigin.x, this._tilemapOrigin.y + y * 48, this._tilemapSize.width, 48));
+					}
+				}
+				
+				CGContextRestoreGState(ctx);
+				
+				isTrack = false;
+			}
 		}
-*/
+
 	});
 	
 	window.addEventListener('load', function() {
